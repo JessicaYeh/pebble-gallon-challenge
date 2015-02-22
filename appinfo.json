@@ -1,0 +1,17 @@
+{
+  "uuid": "8c4c050d-a998-4cc1-aae5-91a387e954c7",
+  "shortName": "GallonChallenge",
+  "longName": "GallonChallenge",
+  "companyName": "MakeAwesomeHappen",
+  "versionCode": 1,
+  "versionLabel": "1.0",
+  "watchapp": {
+    "watchface": false
+  },
+  "appKeys": {
+    "dummy": 0
+  },
+  "resources": {
+    "media": []
+  }
+}
