@@ -1,6 +1,19 @@
 #include <pebble.h>
 #include "GallonChallenge.h"
 
+// Key for saving the previous date that the user completed the day's challenge
+// to determine if the streak count needs to be reset
+#define LAST_STREAK_DATE_KEY 1000
+// Key for saving streak count
+#define STREAK_COUNT_KEY 1001
+// Keys for saving current day's water intake in mL or oz (total for the day
+// is the sum of both amounts, to preserve number precision)
+#define CURRENT_DATE_KEY 1002
+#define CURRENT_ML_KEY 1003
+#define CURRENT_OZ_KEY 1004
+
+#define ML_IN_OZ 29.5735
+
 static Window *window;
 
 static GBitmap *action_icon_plus;
@@ -11,22 +24,66 @@ static ActionBarLayer *action_bar;
 
 static TextLayer *text_layer;
 
+static uint32_t current_ml = 0;
+static uint16_t current_oz = 0;
+
+// Uses the current_ml and current_oz and the chosen display unit to calculate
+// the volume of liquid consumed in the current day
+static float calc_current_volume() {
+    // Currently hardcode to display in cups
+    return (current_ml / ML_IN_OZ + current_oz) / 8;
+}
+
+static void update_gallon() {
+    static char body_text[10];
+    snprintf(body_text, sizeof(body_text), "%u cups", (int)calc_current_volume());
+    text_layer_set_text(text_layer, body_text);
+
+}
+
+// Increase the current volume by one unit
+static void increment_volume() {
+    current_oz += 8;
+    update_gallon();
+}
+
+// Decrease the current volume by one unit
+static void decrement_volume() {
+    if (current_oz - 8 >= 0) {
+        current_oz -= 8;
+    } else {
+        current_oz = 0;
+    }
+    
+    update_gallon();
+}
+
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
     text_layer_set_text(text_layer, "Select");
 }
 
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
-    text_layer_set_text(text_layer, "Up");
+    increment_volume();
 }
 
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
-    text_layer_set_text(text_layer, "Down");
+    decrement_volume();
 }
 
 static void click_config_provider(void *context) {
     window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
     window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
     window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
+}
+
+static void load_persistent_storage() {
+    current_ml = persist_exists(CURRENT_ML_KEY) ? persist_read_int(CURRENT_ML_KEY) : 0;
+    current_oz = persist_exists(CURRENT_OZ_KEY) ? persist_read_int(CURRENT_OZ_KEY) : 0;
+}
+
+static void save_persistent_storage() {
+    persist_write_int(CURRENT_ML_KEY, current_ml);
+    persist_write_int(CURRENT_OZ_KEY, current_oz);
 }
 
 static void window_load(Window *window) {
@@ -41,9 +98,10 @@ static void window_load(Window *window) {
     GRect bounds = layer_get_bounds(window_layer);
 
     text_layer = text_layer_create((GRect) { .origin = { 0, 72 }, .size = { bounds.size.w - 20, 20 } });
-    text_layer_set_text(text_layer, "Press a button");
     text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
     layer_add_child(window_layer, text_layer_get_layer(text_layer));
+    
+    update_gallon();
 }
 
 static void window_unload(Window *window) {
@@ -61,11 +119,15 @@ static void init(void) {
         .load = window_load,
         .unload = window_unload,
     });
-    const bool animated = true;
-    window_stack_push(window, animated);
+    
+    load_persistent_storage();
+    
+    window_stack_push(window, true);
 }
 
 static void deinit(void) {
+    save_persistent_storage();
+    
     window_destroy(window);
 
     gbitmap_destroy(action_icon_plus);
@@ -75,9 +137,6 @@ static void deinit(void) {
 
 int main(void) {
     init();
-
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Done initializing, pushed window: %p", window);
-
     app_event_loop();
     deinit();
 }
