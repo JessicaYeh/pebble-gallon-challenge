@@ -52,7 +52,7 @@ static bool is_last_streak_date_today() {
     uint16_t old_mon = old_date->tm_mon;
     uint16_t old_year = old_date->tm_year;
     
-    time_t now = time(NULL);
+    time_t now = get_todays_date();
     struct tm *new_date = localtime(&now);
     uint16_t new_mday = new_date->tm_mday;
     uint16_t new_mon = new_date->tm_mon;
@@ -65,6 +65,13 @@ static bool is_last_streak_date_today() {
     return false;
 }
 
+static time_t get_todays_date() {
+    return time(NULL);
+}
+
+static time_t get_yesterdays_date() {
+    return time(NULL) - 86400;
+}
 // Uses the current_oz and the chosen display unit to calculate the volume of
 // liquid consumed in the current day
 static uint16_t calc_current_volume() {
@@ -128,11 +135,16 @@ static void increment_volume() {
             break;
     }
     
-    if (current_oz > OZ_IN_GAL) {
+    if (current_oz >= OZ_IN_GAL) {
         current_oz = OZ_IN_GAL;
         
         // If the last streak date is not today's date, then set that date to
         // today's date and increment the streak count.
+        if (!is_last_streak_date_today()) {
+            last_streak_date = get_todays_date();
+            streak_count++;
+            update_streak_display();
+        }
     }
     
     update_volume_display();
@@ -163,6 +175,11 @@ static void decrement_volume() {
     // If the last streak date is today's date, since the goal is now no longer
     // met, set the last streak date to the previous date and decrement the
     // streak count.
+    if (is_last_streak_date_today()) {
+        last_streak_date = get_yesterdays_date();
+        streak_count--;
+        update_streak_display();
+    }
     
     update_volume_display();
 }
@@ -224,7 +241,7 @@ static void load_persistent_storage() {
     current_oz = persist_exists(CURRENT_OZ_KEY) ? persist_read_int(CURRENT_OZ_KEY) : 0;
     unit = persist_exists(UNIT_KEY) ? persist_read_int(UNIT_KEY) : CUP;
     streak_count = persist_exists(STREAK_COUNT_KEY) ? persist_read_int(STREAK_COUNT_KEY) : 0;
-    last_streak_date = persist_exists(LAST_STREAK_DATE_KEY) ? persist_read_int(LAST_STREAK_DATE_KEY) : time(NULL) - 86400;
+    last_streak_date = persist_exists(LAST_STREAK_DATE_KEY) ? persist_read_int(LAST_STREAK_DATE_KEY) : get_yesterdays_date();
 }
 
 static void save_persistent_storage() {
