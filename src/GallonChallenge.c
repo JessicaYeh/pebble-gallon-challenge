@@ -13,6 +13,8 @@
 #define CURRENT_OZ_KEY 1004
 
 #define ML_IN_OZ 29.5735
+#define OZ_IN_GAL 128
+#define ML_IN_GAL 3785
 
 static Window *window;
 
@@ -36,7 +38,7 @@ static float calc_current_volume() {
 
 static void update_gallon() {
     static char body_text[10];
-    snprintf(body_text, sizeof(body_text), "%u cups", (int)calc_current_volume());
+    snprintf(body_text, sizeof(body_text), "%u/16 cups", (int)calc_current_volume());
     text_layer_set_text(text_layer, body_text);
 
 }
@@ -44,6 +46,13 @@ static void update_gallon() {
 // Increase the current volume by one unit
 static void increment_volume() {
     current_oz += 8;
+    if (current_oz > OZ_IN_GAL) {
+        current_oz = OZ_IN_GAL;
+    }
+    if (current_ml > ML_IN_GAL) {
+        current_ml = ML_IN_GAL;
+    }
+    
     update_gallon();
 }
 
@@ -71,9 +80,11 @@ static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
 }
 
 static void click_config_provider(void *context) {
+    const uint16_t repeat_interval_ms = 100;
+    window_single_repeating_click_subscribe(BUTTON_ID_UP, repeat_interval_ms, up_click_handler);
+    window_single_repeating_click_subscribe(BUTTON_ID_DOWN, repeat_interval_ms, down_click_handler);
+    
     window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
-    window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
-    window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
 }
 
 static void load_persistent_storage() {
