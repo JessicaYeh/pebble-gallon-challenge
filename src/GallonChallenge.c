@@ -29,6 +29,9 @@ typedef enum {
 
 static Window *window;
 
+static Window *menu_window;
+static MenuLayer *menu_layer;
+
 static GBitmap *action_icon_plus;
 static GBitmap *action_icon_settings;
 static GBitmap *action_icon_minus;
@@ -131,7 +134,7 @@ static void decrement_volume() {
 }
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
-    text_layer_set_text(text_layer, "Select");
+    window_stack_push(menu_window, true);
 }
 
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -148,6 +151,28 @@ static void click_config_provider(void *context) {
     window_single_repeating_click_subscribe(BUTTON_ID_DOWN, repeat_interval_ms, down_click_handler);
     
     window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
+}
+
+static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    return 4;
+}
+
+static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+    // Use the row to specify which item we'll draw
+    switch (cell_index->row) {
+        case 0:
+            menu_cell_basic_draw(ctx, cell_layer, "Ounces", NULL, NULL);
+            break;
+        case 1:
+            menu_cell_basic_draw(ctx, cell_layer, "Cups", NULL, NULL);
+            break;
+        case 2:
+            menu_cell_basic_draw(ctx, cell_layer, "Pints", NULL, NULL);
+            break;
+        case 3:
+            menu_cell_basic_draw(ctx, cell_layer, "Quarts", NULL, NULL);
+            break;
+    }
 }
 
 static void load_persistent_storage() {
@@ -173,6 +198,25 @@ static void window_load(Window *window) {
     text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
     layer_add_child(window_layer, text_layer_get_layer(text_layer));
     
+    Layer *menu_window_layer = window_get_root_layer(menu_window);
+    GRect menu_bounds = layer_get_bounds(menu_window_layer);
+    
+    // Create the menu layer
+    menu_layer = menu_layer_create(menu_bounds);
+    
+    // Set all the callbacks for the menu layer
+    menu_layer_set_callbacks(menu_layer, NULL, (MenuLayerCallbacks){
+        .get_num_rows = menu_get_num_rows_callback,
+        .draw_row = menu_draw_row_callback,
+    });
+    
+    // Bind the menu layer's click config provider to the window for interactivity
+    menu_layer_set_click_config_onto_window(menu_layer, menu_window);
+    
+    // Add it to the window for display
+    layer_add_child(menu_window_layer, menu_layer_get_layer(menu_layer));
+    
+    
     update_gallon();
 }
 
@@ -192,6 +236,8 @@ static void init(void) {
         .unload = window_unload,
     });
     
+    menu_window = window_create();
+    
     load_persistent_storage();
     
     window_stack_push(window, true);
@@ -201,6 +247,10 @@ static void deinit(void) {
     save_persistent_storage();
     
     window_destroy(window);
+    window_destroy(menu_window);
+    
+    // Destroy the menu layer
+    menu_layer_destroy(menu_layer);
 
     gbitmap_destroy(action_icon_plus);
     gbitmap_destroy(action_icon_settings);
