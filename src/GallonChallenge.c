@@ -6,15 +6,26 @@
 #define LAST_STREAK_DATE_KEY 1000
 // Key for saving streak count
 #define STREAK_COUNT_KEY 1001
-// Keys for saving current day's water intake in mL or oz (total for the day
-// is the sum of both amounts, to preserve number precision)
+// Keys for saving current day's water volume intake
 #define CURRENT_DATE_KEY 1002
-#define CURRENT_ML_KEY 1003
-#define CURRENT_OZ_KEY 1004
+#define CURRENT_OZ_KEY 1003
+// Key for saving display unit type
+#define UNIT_KEY 1004
 
-#define ML_IN_OZ 29.5735
+#define OZ_IN_CUP 8
+#define OZ_IN_PINT 16
+#define OZ_IN_QUART 32
 #define OZ_IN_GAL 128
-#define ML_IN_GAL 3785
+#define CUP_IN_GAL 16
+#define PINT_IN_GAL 8
+#define QUART_IN_GAL 4
+
+typedef enum {
+    OUNCE,
+    CUP,
+    PINT,
+    QUART
+} Unit;
 
 static Window *window;
 
@@ -26,31 +37,69 @@ static ActionBarLayer *action_bar;
 
 static TextLayer *text_layer;
 
-static uint32_t current_ml = 0;
 static uint16_t current_oz = 0;
+static Unit unit = CUP;
 
-// Uses the current_ml and current_oz and the chosen display unit to calculate
-// the volume of liquid consumed in the current day
-static float calc_current_volume() {
-    // Currently hardcode to display in cups
-    return (current_ml / ML_IN_OZ + current_oz) / 8;
+// Uses the current_oz and the chosen display unit to calculate the volume of
+// liquid consumed in the current day
+static uint16_t calc_current_volume() {
+    switch (unit) {
+        case CUP:   return current_oz / OZ_IN_CUP;
+        case PINT:  return current_oz / OZ_IN_PINT;
+        case QUART: return current_oz / OZ_IN_QUART;
+        default:    return current_oz;
+    }
+}
+
+static uint16_t get_unit_in_gal() {
+    switch (unit) {
+        case CUP:   return CUP_IN_GAL;
+        case PINT:  return PINT_IN_GAL;
+        case QUART: return QUART_IN_GAL;
+        default:    return OZ_IN_GAL;
+    }
 }
 
 static void update_gallon() {
-    static char body_text[10];
-    snprintf(body_text, sizeof(body_text), "%u/16 cups", (int)calc_current_volume());
+    static char body_text[20];
+    switch (unit) {
+        case CUP:
+            snprintf(body_text, sizeof(body_text), "%u/%u cups", calc_current_volume(), get_unit_in_gal());
+            break;
+        case PINT:
+            snprintf(body_text, sizeof(body_text), "%u/%u pints", calc_current_volume(), get_unit_in_gal());
+            break;
+        case QUART:
+            snprintf(body_text, sizeof(body_text), "%u/%u quarts", calc_current_volume(), get_unit_in_gal());
+            break;
+        default:
+            snprintf(body_text, sizeof(body_text), "%u/%u ounces", calc_current_volume(), get_unit_in_gal());
+            break;
+    }
+    
     text_layer_set_text(text_layer, body_text);
 
 }
 
 // Increase the current volume by one unit
 static void increment_volume() {
-    current_oz += 8;
+    switch (unit) {
+        case CUP:
+            current_oz += OZ_IN_CUP;
+            break;
+        case PINT:
+            current_oz += OZ_IN_PINT;
+            break;
+        case QUART:
+            current_oz += OZ_IN_QUART;
+            break;
+        default:
+            current_oz++;
+            break;
+    }
+    
     if (current_oz > OZ_IN_GAL) {
         current_oz = OZ_IN_GAL;
-    }
-    if (current_ml > ML_IN_GAL) {
-        current_ml = ML_IN_GAL;
     }
     
     update_gallon();
@@ -58,9 +107,23 @@ static void increment_volume() {
 
 // Decrease the current volume by one unit
 static void decrement_volume() {
-    if (current_oz - 8 >= 0) {
-        current_oz -= 8;
-    } else {
+    switch (unit) {
+        case CUP:
+            current_oz -= OZ_IN_CUP;
+            break;
+        case PINT:
+            current_oz -= OZ_IN_PINT;
+            break;
+        case QUART:
+            current_oz -= OZ_IN_QUART;
+            break;
+        default:
+            current_oz--;
+            break;
+    }
+    
+    // Since unsigned, will wrap around to large numbers
+    if (current_oz > OZ_IN_GAL) {
         current_oz = 0;
     }
     
@@ -88,12 +151,10 @@ static void click_config_provider(void *context) {
 }
 
 static void load_persistent_storage() {
-    current_ml = persist_exists(CURRENT_ML_KEY) ? persist_read_int(CURRENT_ML_KEY) : 0;
     current_oz = persist_exists(CURRENT_OZ_KEY) ? persist_read_int(CURRENT_OZ_KEY) : 0;
 }
 
 static void save_persistent_storage() {
-    persist_write_int(CURRENT_ML_KEY, current_ml);
     persist_write_int(CURRENT_OZ_KEY, current_oz);
 }
 

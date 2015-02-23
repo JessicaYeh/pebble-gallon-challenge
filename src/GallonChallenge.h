@@ -1,7 +1,8 @@
 #ifndef GALLON_CHALLENGE_HEADER
 #define GALLON_CHALLENGE_HEADER
 
-static float calc_current_volume();
+static uint16_t calc_current_volume();
+static uint16_t get_unit_in_gal();
 static void update_gallon();
 static void increment_volume();
 static void decrement_volume();
