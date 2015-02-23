@@ -209,8 +209,17 @@ static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, ui
     menu_cell_basic_header_draw(ctx, cell_layer, "Set Drinking Unit");
 }
 
+static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
+    return 1;
+}
+
 static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
     return 4;
+}
+
+static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    // This is a define provided in pebble.h that you may use for the default height
+    return MENU_CELL_BASIC_HEADER_HEIGHT;
 }
 
 static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
@@ -296,7 +305,9 @@ static void menu_window_load(Window *window) {
     
     // Set all the callbacks for the menu layer
     menu_layer_set_callbacks(menu_layer, NULL, (MenuLayerCallbacks){
+        .get_header_height = menu_get_header_height_callback,
         .draw_header = menu_draw_header_callback,
+        .get_num_sections = menu_get_num_sections_callback,
         .get_num_rows = menu_get_num_rows_callback,
         .draw_row = menu_draw_row_callback,
         .select_click = menu_select_callback,
