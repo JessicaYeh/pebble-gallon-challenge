@@ -1,9 +1,10 @@
 #ifndef GALLON_CHALLENGE_HEADER
 #define GALLON_CHALLENGE_HEADER
 
-static bool is_last_streak_date_today();
+static bool is_this_date_today(time_t date);
 static time_t get_todays_date();
 static time_t get_yesterdays_date();
+static void reset_current_date_and_volume_if_needed();
 static uint16_t calc_current_volume();
 static uint16_t get_unit_in_gal();
 static void update_volume_display();

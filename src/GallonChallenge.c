@@ -41,13 +41,14 @@ static ActionBarLayer *action_bar;
 static TextLayer *streak_text_layer;
 static TextLayer *text_layer;
 
-static uint16_t current_oz;
 static Unit unit;
-static uint16_t streak_count;
+static time_t current_date;
+static uint16_t current_oz;
 static time_t last_streak_date;
+static uint16_t streak_count;
 
-static bool is_last_streak_date_today() {
-    struct tm *old_date = localtime(&last_streak_date);
+static bool is_this_date_today(time_t date) {
+    struct tm *old_date = localtime(&date);
     uint16_t old_mday = old_date->tm_mday;
     uint16_t old_mon = old_date->tm_mon;
     uint16_t old_year = old_date->tm_year;
@@ -72,6 +73,14 @@ static time_t get_todays_date() {
 static time_t get_yesterdays_date() {
     return time(NULL) - 86400;
 }
+
+static void reset_current_date_and_volume_if_needed() {
+    if (!is_this_date_today(current_date)) {
+        current_date = get_todays_date();
+        current_oz = 0;
+    }
+}
+
 // Uses the current_oz and the chosen display unit to calculate the volume of
 // liquid consumed in the current day
 static uint16_t calc_current_volume() {
@@ -140,7 +149,7 @@ static void increment_volume() {
         
         // If the last streak date is not today's date, then set that date to
         // today's date and increment the streak count.
-        if (!is_last_streak_date_today()) {
+        if (!is_this_date_today(last_streak_date)) {
             last_streak_date = get_todays_date();
             streak_count++;
             update_streak_display();
@@ -175,7 +184,7 @@ static void decrement_volume() {
     // If the last streak date is today's date, since the goal is now no longer
     // met, set the last streak date to the previous date and decrement the
     // streak count.
-    if (is_last_streak_date_today()) {
+    if (is_this_date_today(last_streak_date)) {
         last_streak_date = get_yesterdays_date();
         streak_count--;
         update_streak_display();
@@ -251,6 +260,7 @@ static void load_persistent_storage() {
     unit = persist_exists(UNIT_KEY) ? persist_read_int(UNIT_KEY) : CUP;
     streak_count = persist_exists(STREAK_COUNT_KEY) ? persist_read_int(STREAK_COUNT_KEY) : 0;
     last_streak_date = persist_exists(LAST_STREAK_DATE_KEY) ? persist_read_int(LAST_STREAK_DATE_KEY) : get_yesterdays_date();
+    current_date = persist_exists(CURRENT_DATE_KEY) ? persist_read_int(CURRENT_DATE_KEY) : get_todays_date();
 }
 
 static void save_persistent_storage() {
@@ -258,6 +268,7 @@ static void save_persistent_storage() {
     persist_write_int(UNIT_KEY, unit);
     persist_write_int(STREAK_COUNT_KEY, streak_count);
     persist_write_int(LAST_STREAK_DATE_KEY, (int)last_streak_date);
+    persist_write_int(CURRENT_DATE_KEY, (int)current_date);
 }
 
 static void set_selected_unit_in_menu() {
@@ -326,6 +337,8 @@ static void menu_window_unload(Window *window) {
 
 static void init(void) {
     load_persistent_storage();
+    
+    reset_current_date_and_volume_if_needed();
     
     action_icon_plus = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_PLUS);
     action_icon_settings = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_SETTINGS);
