@@ -27,6 +27,11 @@
         "type": "png",
         "name": "IMAGE_ACTION_ICON_SETTINGS",
         "file": "images/action_icon_settings.png"
+      },
+      {
+        "type": "png-trans",
+        "name": "IMAGE_GALLON",
+        "file": "images/gallon.png"
       }
     ]
   }

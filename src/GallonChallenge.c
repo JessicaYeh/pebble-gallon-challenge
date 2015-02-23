@@ -35,11 +35,14 @@ static MenuLayer *menu_layer;
 static GBitmap *action_icon_plus;
 static GBitmap *action_icon_settings;
 static GBitmap *action_icon_minus;
+static GBitmap *gallon_black_image;
 
 static ActionBarLayer *action_bar;
 
 static TextLayer *streak_text_layer;
 static TextLayer *text_layer;
+
+static BitmapLayer *gallon_black_layer;
 
 static Unit unit;
 static time_t current_date;
@@ -286,16 +289,23 @@ static void window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
     
-    const int16_t width = bounds.size.w - ACTION_BAR_WIDTH - 3;
+    const int16_t width = bounds.size.w - ACTION_BAR_WIDTH - 7;
     
     streak_text_layer = text_layer_create(GRect(4, 0, width, 60));
     text_layer_set_font(streak_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24));
+    text_layer_set_text_alignment(streak_text_layer, GTextAlignmentCenter);
     text_layer_set_background_color(streak_text_layer, GColorClear);
     layer_add_child(window_layer, text_layer_get_layer(streak_text_layer));
-
-    text_layer = text_layer_create((GRect) { .origin = { 0, 72 }, .size = { bounds.size.w - 20, 20 } });
+    
+    text_layer = text_layer_create((GRect) { .origin = { 0, 100 }, .size = { bounds.size.w - 20, 20 } });
     text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
     layer_add_child(window_layer, text_layer_get_layer(text_layer));
+    
+    gallon_black_layer = bitmap_layer_create(GRect(0, 28, 124, 124));
+    bitmap_layer_set_bitmap(gallon_black_layer, gallon_black_image);
+    bitmap_layer_set_background_color(gallon_black_layer, GColorClear);
+    bitmap_layer_set_compositing_mode(gallon_black_layer, GCompOpClear);
+    layer_add_child(window_layer, bitmap_layer_get_layer(gallon_black_layer));
     
     update_streak_display();
     update_volume_display();
@@ -304,6 +314,7 @@ static void window_load(Window *window) {
 static void window_unload(Window *window) {
     text_layer_destroy(text_layer);
     text_layer_destroy(streak_text_layer);
+    bitmap_layer_destroy(gallon_black_layer);
     action_bar_layer_destroy(action_bar);
 }
 
@@ -343,6 +354,7 @@ static void init(void) {
     action_icon_plus = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_PLUS);
     action_icon_settings = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_SETTINGS);
     action_icon_minus = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_MINUS);
+    gallon_black_image = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_GALLON_BLACK);
 
     window = window_create();
     window_set_click_config_provider(window, click_config_provider);
@@ -366,6 +378,7 @@ static void deinit(void) {
     gbitmap_destroy(action_icon_plus);
     gbitmap_destroy(action_icon_settings);
     gbitmap_destroy(action_icon_minus);
+    gbitmap_destroy(gallon_black_image);
     
     window_destroy(window);
     window_destroy(menu_window);
