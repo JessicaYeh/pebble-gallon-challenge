@@ -44,9 +44,24 @@ static TextLayer *text_layer;
 static uint16_t current_oz;
 static Unit unit;
 static uint16_t streak_count;
-static uint32_t last_streak_date;
+static time_t last_streak_date;
 
 static bool is_last_streak_date_today() {
+    struct tm *old_date = localtime(&last_streak_date);
+    uint16_t old_mday = old_date->tm_mday;
+    uint16_t old_mon = old_date->tm_mon;
+    uint16_t old_year = old_date->tm_year;
+    
+    time_t now = time(NULL);
+    struct tm *new_date = localtime(&now);
+    uint16_t new_mday = new_date->tm_mday;
+    uint16_t new_mon = new_date->tm_mon;
+    uint16_t new_year = new_date->tm_year;
+    
+    if (old_mday == new_mday && old_mon == new_mon && old_year == new_year) {
+        return true;
+    }
+    
     return false;
 }
 
@@ -209,14 +224,14 @@ static void load_persistent_storage() {
     current_oz = persist_exists(CURRENT_OZ_KEY) ? persist_read_int(CURRENT_OZ_KEY) : 0;
     unit = persist_exists(UNIT_KEY) ? persist_read_int(UNIT_KEY) : CUP;
     streak_count = persist_exists(STREAK_COUNT_KEY) ? persist_read_int(STREAK_COUNT_KEY) : 0;
-    last_streak_date = persist_exists(LAST_STREAK_DATE_KEY) ? persist_read_int(LAST_STREAK_DATE_KEY) : 0;
+    last_streak_date = persist_exists(LAST_STREAK_DATE_KEY) ? persist_read_int(LAST_STREAK_DATE_KEY) : time(NULL) - 86400;
 }
 
 static void save_persistent_storage() {
     persist_write_int(CURRENT_OZ_KEY, current_oz);
     persist_write_int(UNIT_KEY, unit);
     persist_write_int(STREAK_COUNT_KEY, streak_count);
-    persist_write_int(LAST_STREAK_DATE_KEY, last_streak_date);
+    persist_write_int(LAST_STREAK_DATE_KEY, (int)last_streak_date);
 }
 
 static void set_selected_unit_in_menu() {
