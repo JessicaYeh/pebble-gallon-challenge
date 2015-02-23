@@ -185,8 +185,8 @@ static void decrement_volume() {
 }
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
-    set_selected_unit_in_menu();
     window_stack_push(menu_window, true);
+    set_selected_unit_in_menu();
 }
 
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -231,7 +231,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
     }
 }
 
-void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
     unit = cell_index->row;
     update_volume_display();
     window_stack_pop(true);
