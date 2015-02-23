@@ -21,10 +21,10 @@
 #define QUART_IN_GAL 4
 
 typedef enum {
-    OUNCE,
-    CUP,
-    PINT,
-    QUART
+    OUNCE = 0,
+    CUP = 1,
+    PINT = 2,
+    QUART = 3
 } Unit;
 
 static Window *window;
@@ -63,7 +63,7 @@ static uint16_t get_unit_in_gal() {
     }
 }
 
-static void update_gallon() {
+static void update_display() {
     static char body_text[20];
     switch (unit) {
         case CUP:
@@ -105,7 +105,7 @@ static void increment_volume() {
         current_oz = OZ_IN_GAL;
     }
     
-    update_gallon();
+    update_display();
 }
 
 // Decrease the current volume by one unit
@@ -130,10 +130,11 @@ static void decrement_volume() {
         current_oz = 0;
     }
     
-    update_gallon();
+    update_display();
 }
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
+    set_selected_unit_in_menu();
     window_stack_push(menu_window, true);
 }
 
@@ -151,6 +152,10 @@ static void click_config_provider(void *context) {
     window_single_repeating_click_subscribe(BUTTON_ID_DOWN, repeat_interval_ms, down_click_handler);
     
     window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
+}
+
+static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
+    menu_cell_basic_header_draw(ctx, cell_layer, "Set Drinking Unit");
 }
 
 static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
@@ -175,12 +180,24 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
     }
 }
 
+void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+    unit = cell_index->row;
+    update_display();
+    window_stack_pop(true);
+}
+
 static void load_persistent_storage() {
     current_oz = persist_exists(CURRENT_OZ_KEY) ? persist_read_int(CURRENT_OZ_KEY) : 0;
+    unit = persist_exists(UNIT_KEY) ? persist_read_int(UNIT_KEY) : CUP;
 }
 
 static void save_persistent_storage() {
     persist_write_int(CURRENT_OZ_KEY, current_oz);
+    persist_write_int(UNIT_KEY, unit);
+}
+
+static void set_selected_unit_in_menu() {
+    menu_layer_set_selected_index(menu_layer, (MenuIndex) { .row = unit, .section = 0 }, MenuRowAlignCenter, false);
 }
 
 static void window_load(Window *window) {
@@ -206,8 +223,10 @@ static void window_load(Window *window) {
     
     // Set all the callbacks for the menu layer
     menu_layer_set_callbacks(menu_layer, NULL, (MenuLayerCallbacks){
+        .draw_header = menu_draw_header_callback,
         .get_num_rows = menu_get_num_rows_callback,
         .draw_row = menu_draw_row_callback,
+        .select_click = menu_select_callback,
     });
     
     // Bind the menu layer's click config provider to the window for interactivity
@@ -217,7 +236,7 @@ static void window_load(Window *window) {
     layer_add_child(menu_window_layer, menu_layer_get_layer(menu_layer));
     
     
-    update_gallon();
+    update_display();
 }
 
 static void window_unload(Window *window) {
