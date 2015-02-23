@@ -1,9 +1,11 @@
 #ifndef GALLON_CHALLENGE_HEADER
 #define GALLON_CHALLENGE_HEADER
 
+static bool is_last_streak_date_today();
 static uint16_t calc_current_volume();
 static uint16_t get_unit_in_gal();
-static void update_display();
+static void update_volume_display();
+static void update_streak_display();
 static void increment_volume();
 static void decrement_volume();
 
@@ -23,6 +25,8 @@ static void set_selected_unit_in_menu();
 
 static void window_load(Window *window);
 static void window_unload(Window *window);
+static void menu_window_load(Window *window);
+static void menu_window_unload(Window *window);
 static void init(void);
 static void deinit(void);
 

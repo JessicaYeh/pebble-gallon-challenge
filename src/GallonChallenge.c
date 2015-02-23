@@ -2,7 +2,7 @@
 #include "GallonChallenge.h"
 
 // Key for saving the previous date that the user completed the day's challenge
-// to determine if the streak count needs to be reset
+// to determine if the streak count needs to be reset. Saved as a time_t.
 #define LAST_STREAK_DATE_KEY 1000
 // Key for saving streak count
 #define STREAK_COUNT_KEY 1001
@@ -38,10 +38,17 @@ static GBitmap *action_icon_minus;
 
 static ActionBarLayer *action_bar;
 
+static TextLayer *streak_text_layer;
 static TextLayer *text_layer;
 
-static uint16_t current_oz = 0;
-static Unit unit = CUP;
+static uint16_t current_oz;
+static Unit unit;
+static uint16_t streak_count;
+static uint32_t last_streak_date;
+
+static bool is_last_streak_date_today() {
+    return false;
+}
 
 // Uses the current_oz and the chosen display unit to calculate the volume of
 // liquid consumed in the current day
@@ -63,7 +70,7 @@ static uint16_t get_unit_in_gal() {
     }
 }
 
-static void update_display() {
+static void update_volume_display() {
     static char body_text[20];
     switch (unit) {
         case CUP:
@@ -81,7 +88,12 @@ static void update_display() {
     }
     
     text_layer_set_text(text_layer, body_text);
+}
 
+static void update_streak_display() {
+    static char streak_text[20];
+    snprintf(streak_text, sizeof(streak_text), "%u day streak!", streak_count);
+    text_layer_set_text(streak_text_layer, streak_text);
 }
 
 // Increase the current volume by one unit
@@ -103,9 +115,12 @@ static void increment_volume() {
     
     if (current_oz > OZ_IN_GAL) {
         current_oz = OZ_IN_GAL;
+        
+        // If the last streak date is not today's date, then set that date to
+        // today's date and increment the streak count.
     }
     
-    update_display();
+    update_volume_display();
 }
 
 // Decrease the current volume by one unit
@@ -130,7 +145,11 @@ static void decrement_volume() {
         current_oz = 0;
     }
     
-    update_display();
+    // If the last streak date is today's date, since the goal is now no longer
+    // met, set the last streak date to the previous date and decrement the
+    // streak count.
+    
+    update_volume_display();
 }
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -182,18 +201,22 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 
 void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
     unit = cell_index->row;
-    update_display();
+    update_volume_display();
     window_stack_pop(true);
 }
 
 static void load_persistent_storage() {
     current_oz = persist_exists(CURRENT_OZ_KEY) ? persist_read_int(CURRENT_OZ_KEY) : 0;
     unit = persist_exists(UNIT_KEY) ? persist_read_int(UNIT_KEY) : CUP;
+    streak_count = persist_exists(STREAK_COUNT_KEY) ? persist_read_int(STREAK_COUNT_KEY) : 0;
+    last_streak_date = persist_exists(LAST_STREAK_DATE_KEY) ? persist_read_int(LAST_STREAK_DATE_KEY) : 0;
 }
 
 static void save_persistent_storage() {
     persist_write_int(CURRENT_OZ_KEY, current_oz);
     persist_write_int(UNIT_KEY, unit);
+    persist_write_int(STREAK_COUNT_KEY, streak_count);
+    persist_write_int(LAST_STREAK_DATE_KEY, last_streak_date);
 }
 
 static void set_selected_unit_in_menu() {
@@ -210,11 +233,29 @@ static void window_load(Window *window) {
 
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
+    
+    const int16_t width = bounds.size.w - ACTION_BAR_WIDTH - 3;
+    
+    streak_text_layer = text_layer_create(GRect(4, 0, width, 60));
+    text_layer_set_font(streak_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24));
+    text_layer_set_background_color(streak_text_layer, GColorClear);
+    layer_add_child(window_layer, text_layer_get_layer(streak_text_layer));
 
     text_layer = text_layer_create((GRect) { .origin = { 0, 72 }, .size = { bounds.size.w - 20, 20 } });
     text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
     layer_add_child(window_layer, text_layer_get_layer(text_layer));
     
+    update_streak_display();
+    update_volume_display();
+}
+
+static void window_unload(Window *window) {
+    text_layer_destroy(text_layer);
+    text_layer_destroy(streak_text_layer);
+    action_bar_layer_destroy(action_bar);
+}
+
+static void menu_window_load(Window *window) {
     Layer *menu_window_layer = window_get_root_layer(menu_window);
     GRect menu_bounds = layer_get_bounds(menu_window_layer);
     
@@ -234,16 +275,15 @@ static void window_load(Window *window) {
     
     // Add it to the window for display
     layer_add_child(menu_window_layer, menu_layer_get_layer(menu_layer));
-    
-    
-    update_display();
 }
 
-static void window_unload(Window *window) {
-    text_layer_destroy(text_layer);
+static void menu_window_unload(Window *window) {
+    menu_layer_destroy(menu_layer);
 }
 
 static void init(void) {
+    load_persistent_storage();
+    
     action_icon_plus = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_PLUS);
     action_icon_settings = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_SETTINGS);
     action_icon_minus = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_MINUS);
@@ -256,8 +296,10 @@ static void init(void) {
     });
     
     menu_window = window_create();
-    
-    load_persistent_storage();
+    window_set_window_handlers(menu_window, (WindowHandlers) {
+        .load = menu_window_load,
+        .unload = menu_window_unload,
+    });
     
     window_stack_push(window, true);
 }
@@ -265,15 +307,12 @@ static void init(void) {
 static void deinit(void) {
     save_persistent_storage();
     
-    window_destroy(window);
-    window_destroy(menu_window);
-    
-    // Destroy the menu layer
-    menu_layer_destroy(menu_layer);
-
     gbitmap_destroy(action_icon_plus);
     gbitmap_destroy(action_icon_settings);
     gbitmap_destroy(action_icon_minus);
+    
+    window_destroy(window);
+    window_destroy(menu_window);
 }
 
 int main(void) {
