@@ -7,6 +7,8 @@ static time_t get_yesterdays_date();
 static void reset_current_date_and_volume_if_needed();
 static uint16_t calc_current_volume();
 static uint16_t get_unit_in_gal();
+static float get_goal_scale();
+static void set_image_for_goal();
 static void update_volume_display();
 static void update_streak_display();
 static void increment_volume();

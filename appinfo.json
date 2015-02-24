@@ -37,6 +37,16 @@
         "type": "png-trans",
         "name": "IMAGE_GALLON",
         "file": "images/gallon.png"
+      },
+      {
+        "type": "png",
+        "name": "IMAGE_HALF_GALLON_FILLED",
+        "file": "images/half_gallon_filled.png"
+      },
+      {
+        "type": "png-trans",
+        "name": "IMAGE_HALF_GALLON",
+        "file": "images/half_gallon.png"
       }
     ]
   }

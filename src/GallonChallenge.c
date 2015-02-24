@@ -11,6 +11,8 @@
 #define CURRENT_OZ_KEY 1003
 // Key for saving display unit type
 #define UNIT_KEY 1004
+// Key for saving goal unit type
+#define GOAL_KEY 1005
 
 #define OZ_IN_CUP 8
 #define OZ_IN_PINT 16
@@ -24,7 +26,9 @@ typedef enum {
     OUNCE = 0,
     CUP = 1,
     PINT = 2,
-    QUART = 3
+    QUART = 3,
+    HALF_GALLON = 4,
+    GALLON = 5
 } Unit;
 
 static Window *window;
@@ -47,6 +51,7 @@ static TextLayer *white_layer;
 static BitmapLayer *gallon_filled_layer;
 static BitmapLayer *gallon_layer;
 
+static Unit goal;
 static Unit unit;
 static time_t current_date;
 static uint16_t current_oz;
@@ -107,26 +112,55 @@ static uint16_t get_unit_in_gal() {
     }
 }
 
-static void update_volume_display() {
-    static char body_text[20];
-    switch (unit) {
-        case CUP:
-            snprintf(body_text, sizeof(body_text), "%u/%u cups", calc_current_volume(), get_unit_in_gal());
-            break;
-        case PINT:
-            snprintf(body_text, sizeof(body_text), "%u/%u pints", calc_current_volume(), get_unit_in_gal());
-            break;
-        case QUART:
-            snprintf(body_text, sizeof(body_text), "%u/%u quarts", calc_current_volume(), get_unit_in_gal());
+static float get_goal_scale() {
+    switch (goal) {
+        case HALF_GALLON: return 0.5;
+        default:          return 1.0;
+    }
+}
+
+static void set_image_for_goal() {
+    // Free the old image before creating the new image
+    gbitmap_destroy(gallon_filled_image);
+    gbitmap_destroy(gallon_image);
+    
+    switch (goal) {
+        case HALF_GALLON:
+            gallon_filled_image = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_HALF_GALLON_FILLED);
+            gallon_image = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_HALF_GALLON_BLACK);
             break;
         default:
-            snprintf(body_text, sizeof(body_text), "%u/%u ounces", calc_current_volume(), get_unit_in_gal());
+            gallon_filled_image = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_GALLON_FILLED);
+            gallon_image = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_GALLON_BLACK);
+            break;
+    }
+    
+    bitmap_layer_set_bitmap(gallon_filled_layer, gallon_filled_image);
+    bitmap_layer_set_bitmap(gallon_layer, gallon_image);
+}
+
+static void update_volume_display() {
+    static char body_text[20];
+    
+    uint16_t denominator = get_unit_in_gal() * get_goal_scale();
+    switch (unit) {
+        case CUP:
+            snprintf(body_text, sizeof(body_text), "%u/%u cups", calc_current_volume(), denominator);
+            break;
+        case PINT:
+            snprintf(body_text, sizeof(body_text), "%u/%u pints", calc_current_volume(), denominator);
+            break;
+        case QUART:
+            snprintf(body_text, sizeof(body_text), "%u/%u quarts", calc_current_volume(), denominator);
+            break;
+        default:
+            snprintf(body_text, sizeof(body_text), "%u/%u ounces", calc_current_volume(), denominator);
             break;
     }
     
     text_layer_set_text(text_layer, body_text);
     
-    layer_set_frame(text_layer_get_layer(white_layer), GRect(0, 37, 124, (1 - (float)current_oz / (float)OZ_IN_GAL) * 93));
+    layer_set_frame(text_layer_get_layer(white_layer), GRect(0, 37, 124, (1 - (float)current_oz / (float)OZ_IN_GAL / get_goal_scale()) * 93));
 }
 
 static void update_streak_display() {
@@ -152,8 +186,8 @@ static void increment_volume() {
             break;
     }
     
-    if (current_oz >= OZ_IN_GAL) {
-        current_oz = OZ_IN_GAL;
+    if (current_oz >= OZ_IN_GAL * get_goal_scale()) {
+        current_oz = OZ_IN_GAL * get_goal_scale();
         
         // If the last streak date is not today's date, then set that date to
         // today's date and increment the streak count.
@@ -185,7 +219,7 @@ static void decrement_volume() {
     }
     
     // Since unsigned, will wrap around to large numbers
-    if (current_oz > OZ_IN_GAL) {
+    if (current_oz > OZ_IN_GAL * get_goal_scale()) {
         current_oz = 0;
     }
     
@@ -265,6 +299,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
 
 static void load_persistent_storage() {
     current_oz = persist_exists(CURRENT_OZ_KEY) ? persist_read_int(CURRENT_OZ_KEY) : 0;
+    goal = persist_exists(GOAL_KEY) ? persist_read_int(GOAL_KEY) : GALLON;
     unit = persist_exists(UNIT_KEY) ? persist_read_int(UNIT_KEY) : CUP;
     streak_count = persist_exists(STREAK_COUNT_KEY) ? persist_read_int(STREAK_COUNT_KEY) : 0;
     last_streak_date = persist_exists(LAST_STREAK_DATE_KEY) ? persist_read_int(LAST_STREAK_DATE_KEY) : get_yesterdays_date();
@@ -273,6 +308,7 @@ static void load_persistent_storage() {
 
 static void save_persistent_storage() {
     persist_write_int(CURRENT_OZ_KEY, current_oz);
+    persist_write_int(GOAL_KEY, goal);
     persist_write_int(UNIT_KEY, unit);
     persist_write_int(STREAK_COUNT_KEY, streak_count);
     persist_write_int(LAST_STREAK_DATE_KEY, (int)last_streak_date);
@@ -308,7 +344,6 @@ static void window_load(Window *window) {
     layer_add_child(window_layer, text_layer_get_layer(text_layer));
     
     gallon_filled_layer = bitmap_layer_create(GRect(0, 30, 124, 104));
-    bitmap_layer_set_bitmap(gallon_filled_layer, gallon_filled_image);
     layer_add_child(window_layer, bitmap_layer_get_layer(gallon_filled_layer));
     
     white_layer = text_layer_create(GRect(0, 30, 124, 104));
@@ -316,11 +351,11 @@ static void window_load(Window *window) {
     layer_add_child(window_layer, text_layer_get_layer(white_layer));
     
     gallon_layer = bitmap_layer_create(GRect(0, 30, 124, 104));
-    bitmap_layer_set_bitmap(gallon_layer, gallon_image);
     bitmap_layer_set_background_color(gallon_layer, GColorClear);
     bitmap_layer_set_compositing_mode(gallon_layer, GCompOpClear);
     layer_add_child(window_layer, bitmap_layer_get_layer(gallon_layer));
     
+    set_image_for_goal();
     update_streak_display();
     update_volume_display();
 }
@@ -370,8 +405,6 @@ static void init(void) {
     action_icon_plus = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_PLUS);
     action_icon_settings = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_SETTINGS);
     action_icon_minus = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_MINUS);
-    gallon_filled_image = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_GALLON_FILLED);
-    gallon_image = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_GALLON_BLACK);
 
     window = window_create();
     window_set_click_config_provider(window, click_config_provider);
