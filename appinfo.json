@@ -29,6 +29,11 @@
         "file": "images/action_icon_settings.png"
       },
       {
+        "type": "png",
+        "name": "IMAGE_GALLON_FILLED",
+        "file": "images/gallon_filled.png"
+      },
+      {
         "type": "png-trans",
         "name": "IMAGE_GALLON",
         "file": "images/gallon.png"
