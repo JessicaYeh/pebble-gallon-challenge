@@ -300,19 +300,20 @@ static void window_load(Window *window) {
     text_layer_set_background_color(streak_text_layer, GColorClear);
     layer_add_child(window_layer, text_layer_get_layer(streak_text_layer));
     
-    text_layer = text_layer_create(GRect(0, 130, width, 20));
+    text_layer = text_layer_create(GRect(4, 134, width, 20));
     text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
+    text_layer_set_background_color(text_layer, GColorClear);
     layer_add_child(window_layer, text_layer_get_layer(text_layer));
     
-    gallon_filled_layer = bitmap_layer_create(GRect(0, 28, 124, 124));
+    gallon_filled_layer = bitmap_layer_create(GRect(0, 30, 124, 104));
     bitmap_layer_set_bitmap(gallon_filled_layer, gallon_filled_image);
     layer_add_child(window_layer, bitmap_layer_get_layer(gallon_filled_layer));
     
-    white_layer = text_layer_create(GRect(0, 28, 124, 62));
+    white_layer = text_layer_create(GRect(0, 30, 124, 52));
     text_layer_set_background_color(white_layer, GColorWhite);
     layer_add_child(window_layer, text_layer_get_layer(white_layer));
     
-    gallon_layer = bitmap_layer_create(GRect(0, 28, 124, 124));
+    gallon_layer = bitmap_layer_create(GRect(0, 30, 124, 104));
     bitmap_layer_set_bitmap(gallon_layer, gallon_image);
     bitmap_layer_set_background_color(gallon_layer, GColorClear);
     bitmap_layer_set_compositing_mode(gallon_layer, GCompOpClear);
