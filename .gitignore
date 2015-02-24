@@ -2,3 +2,4 @@
 
 # Ignore build generated files
 build
+pebble-screenshot_*.png
