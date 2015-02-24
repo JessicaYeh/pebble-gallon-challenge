@@ -12,4 +12,5 @@ This app is currently still in development! Please check back soon for a downloa
 
 ## Attributions
 <a href="http://thenounproject.com/term/milk/1701/">Gallon Icon</a> - Created by Jeff Seevers from the Noun Project
+
 <a href="http://thenounproject.com/term/milk/82802/">Half Gallon Icon</a> - Created by Blaise Sewell from the Noun Project
