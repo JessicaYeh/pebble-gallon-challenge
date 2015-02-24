@@ -19,6 +19,8 @@ static void up_click_handler(ClickRecognizerRef recognizer, void *context);
 static void down_click_handler(ClickRecognizerRef recognizer, void *context);
 static void click_config_provider(void *context);
 
+static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed);
+
 static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data);
 static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data);
 static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data);

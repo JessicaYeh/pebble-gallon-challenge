@@ -256,6 +256,13 @@ static void click_config_provider(void *context) {
     window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
 }
 
+static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed) {
+    if (tick_time->tm_hour == 0) {
+        reset_current_date_and_volume_if_needed();
+        update_volume_display();
+    }
+}
+
 static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
     menu_cell_basic_header_draw(ctx, cell_layer, "Set Drinking Unit");
 }
@@ -420,6 +427,8 @@ static void init(void) {
     });
     
     window_stack_push(window, true);
+    
+    tick_timer_service_subscribe(HOUR_UNIT, handle_hour_tick);
 }
 
 static void deinit(void) {
