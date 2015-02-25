@@ -95,11 +95,11 @@ static bool are_dates_equal(time_t date1, time_t date2) {
 }
 
 static time_t get_todays_date() {
-    return time(NULL);
+    return time(NULL) - end_of_day * 3600;
 }
 
 static time_t get_yesterdays_date() {
-    return time(NULL) - 86400;
+    return time(NULL) - end_of_day * 3600 - 86400;
 }
 
 static void reset_current_date_and_volume_if_needed() {
@@ -689,7 +689,12 @@ static void eod_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, M
 }
 
 static void eod_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+    uint16_t old_end_of_day = end_of_day;
     end_of_day = cell_index->row * 3;
+    uint32_t time_diff = (end_of_day - old_end_of_day) * 3600;
+    current_date -= time_diff;
+    last_streak_date -= time_diff;
+    reset_current_date_and_volume_if_needed();
     window_stack_pop(true);
 }
 
