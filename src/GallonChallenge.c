@@ -13,6 +13,8 @@
 #define UNIT_KEY 1004
 // Key for saving goal unit type
 #define GOAL_KEY 1005
+// Key for saving end of day
+#define EOD_KEY 1006
 
 #define OZ_IN_CUP 8
 #define OZ_IN_PINT 16
@@ -46,6 +48,7 @@ static time_t current_date;
 static uint16_t current_oz;
 static time_t last_streak_date;
 static uint16_t streak_count;
+static uint16_t end_of_day;
 
 static const char* unit_to_string(Unit u) {
     switch (u) {
@@ -56,6 +59,20 @@ static const char* unit_to_string(Unit u) {
         case HALF_GALLON: return "Half Gallon";
         case GALLON:      return "One Gallon";
         default:          return "";
+    }
+}
+
+static const char* eod_to_string(uint16_t hour) {
+    switch (hour) {
+        case 0:  return "12:00 AM";
+        case 3:  return "3:00 AM";
+        case 6:  return "6:00 AM";
+        case 9:  return "9:00 AM";
+        case 12: return "12:00 PM";
+        case 15: return "3:00 PM";
+        case 18: return "6:00 PM";
+        case 21: return "9:00 PM";
+        default: return "";
     }
 }
 
@@ -264,6 +281,7 @@ static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed) {
 
 static void load_persistent_storage() {
     current_oz = persist_exists(CURRENT_OZ_KEY) ? persist_read_int(CURRENT_OZ_KEY) : 0;
+    end_of_day = persist_exists(EOD_KEY) ? persist_read_int(EOD_KEY) : 0;
     goal = persist_exists(GOAL_KEY) ? persist_read_int(GOAL_KEY) : GALLON;
     unit = persist_exists(UNIT_KEY) ? persist_read_int(UNIT_KEY) : CUP;
     streak_count = persist_exists(STREAK_COUNT_KEY) ? persist_read_int(STREAK_COUNT_KEY) : 0;
@@ -273,6 +291,7 @@ static void load_persistent_storage() {
 
 static void save_persistent_storage() {
     persist_write_int(CURRENT_OZ_KEY, current_oz);
+    persist_write_int(EOD_KEY, end_of_day);
     persist_write_int(GOAL_KEY, goal);
     persist_write_int(UNIT_KEY, unit);
     persist_write_int(STREAK_COUNT_KEY, streak_count);
@@ -444,7 +463,7 @@ static void settings_menu_draw_row_callback(GContext* ctx, const Layer *cell_lay
                     menu_cell_basic_draw(ctx, cell_layer, "Drinking Unit", unit_to_string(unit), NULL);
                     break;
                 case 2:
-                    menu_cell_basic_draw(ctx, cell_layer, "End of Day", "12:00 AM", NULL);
+                    menu_cell_basic_draw(ctx, cell_layer, "End of Day", eod_to_string(end_of_day), NULL);
                     break;
             }
             break;
