@@ -62,14 +62,13 @@ static uint16_t current_oz;
 static time_t last_streak_date;
 static uint16_t streak_count;
 
-static bool is_this_date_today(time_t date) {
-    struct tm *old_date = localtime(&date);
+static bool are_dates_equal(time_t date1, time_t date2) {
+    struct tm *old_date = localtime(&date1);
     uint16_t old_mday = old_date->tm_mday;
     uint16_t old_mon = old_date->tm_mon;
     uint16_t old_year = old_date->tm_year;
     
-    time_t now = get_todays_date();
-    struct tm *new_date = localtime(&now);
+    struct tm *new_date = localtime(&date2);
     uint16_t new_mday = new_date->tm_mday;
     uint16_t new_mon = new_date->tm_mon;
     uint16_t new_year = new_date->tm_year;
@@ -90,10 +89,19 @@ static time_t get_yesterdays_date() {
 }
 
 static void reset_current_date_and_volume_if_needed() {
-    if (!is_this_date_today(current_date)) {
-        current_date = get_todays_date();
+    time_t today = get_todays_date();
+    if (!are_dates_equal(current_date, today)) {
+        current_date = today;
         current_oz = 0;
+        
+        // Reset the streak if needed
+        if (!are_dates_equal(last_streak_date, get_yesterdays_date())) {
+            streak_count = 0;
+        }
     }
+    
+    update_streak_count();
+    update_volume_display();
 }
 
 // Uses the current_oz and the chosen display unit to calculate the volume of
@@ -190,18 +198,7 @@ static void increment_volume() {
             break;
     }
     
-    if (current_oz >= OZ_IN_GAL * get_goal_scale()) {
-        current_oz = OZ_IN_GAL * get_goal_scale();
-        
-        // If the last streak date is not today's date, then set that date to
-        // today's date and increment the streak count.
-        if (!is_this_date_today(last_streak_date)) {
-            last_streak_date = get_todays_date();
-            streak_count++;
-            update_streak_display();
-        }
-    }
-    
+    update_streak_count();
     update_volume_display();
 }
 
@@ -227,16 +224,33 @@ static void decrement_volume() {
         current_oz = 0;
     }
     
-    // If the last streak date is today's date, since the goal is now no longer
-    // met, set the last streak date to the previous date and decrement the
-    // streak count.
-    if (is_this_date_today(last_streak_date)) {
+    update_streak_count();
+    update_volume_display();
+}
+
+static void update_streak_count() {
+    uint16_t goal_oz = OZ_IN_GAL * get_goal_scale();
+    time_t today = get_todays_date();
+    
+    if (current_oz >= goal_oz) {
+        // Restrict the max ounces to the goal ounces
+        current_oz = goal_oz;
+        
+        // If the last streak date is not today's date, then set that date to
+        // today's date and increment the streak count.
+        if (!are_dates_equal(last_streak_date, today)) {
+            last_streak_date = today;
+            streak_count++;
+        }
+    } else if (current_oz < goal_oz && are_dates_equal(last_streak_date, today)) {
+        // If the last streak date is today's date, since the goal is now no longer
+        // met, set the last streak date to the previous date and decrement the
+        // streak count.
         last_streak_date = get_yesterdays_date();
         streak_count--;
-        update_streak_display();
     }
     
-    update_volume_display();
+    update_streak_display();
 }
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -262,8 +276,6 @@ static void click_config_provider(void *context) {
 static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed) {
     if (tick_time->tm_hour == 0) {
         reset_current_date_and_volume_if_needed();
-        update_streak_display();
-        update_volume_display();
     }
 }
 
@@ -377,25 +389,7 @@ static void goal_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, 
 static void goal_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
     goal = cell_index->row + 4;
     set_image_for_goal();
-    
-    // Check if the streak count needs to be incremented
-    if (current_oz >= OZ_IN_GAL * get_goal_scale()) {
-        current_oz = OZ_IN_GAL * get_goal_scale();
-        
-        if (!is_this_date_today(last_streak_date)) {
-            last_streak_date = get_todays_date();
-            streak_count++;
-            update_streak_display();
-        }
-    }
-    
-    // Check if the streak count needs to be decremented
-    if (current_oz < OZ_IN_GAL * get_goal_scale() && is_this_date_today(last_streak_date)) {
-        last_streak_date = get_yesterdays_date();
-        streak_count--;
-        update_streak_display();
-    }
-    
+    update_streak_count();
     update_volume_display();
     window_stack_pop(true);
 }
@@ -496,8 +490,7 @@ static void window_load(Window *window) {
     layer_add_child(window_layer, bitmap_layer_get_layer(gallon_layer));
     
     set_image_for_goal();
-    update_streak_display();
-    update_volume_display();
+    reset_current_date_and_volume_if_needed();
 }
 
 static void window_unload(Window *window) {
@@ -614,8 +607,6 @@ static void unit_menu_show() {
 
 static void init(void) {
     load_persistent_storage();
-    
-    reset_current_date_and_volume_if_needed();
     
     action_icon_plus = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_PLUS);
     action_icon_settings = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_SETTINGS);

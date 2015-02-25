@@ -1,7 +1,7 @@
 #ifndef GALLON_CHALLENGE_HEADER
 #define GALLON_CHALLENGE_HEADER
 
-static bool is_this_date_today(time_t date);
+static bool are_dates_equal(time_t date1, time_t date2);
 static time_t get_todays_date();
 static time_t get_yesterdays_date();
 static void reset_current_date_and_volume_if_needed();
@@ -13,6 +13,7 @@ static void update_volume_display();
 static void update_streak_display();
 static void increment_volume();
 static void decrement_volume();
+static void update_streak_count();
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context);
 static void up_click_handler(ClickRecognizerRef recognizer, void *context);
