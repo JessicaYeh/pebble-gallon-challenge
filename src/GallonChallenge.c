@@ -381,6 +381,12 @@ static void init(void) {
         .unload = unit_menu_window_unload,
     });
     
+    eod_menu_window = window_create();
+    window_set_window_handlers(eod_menu_window, (WindowHandlers) {
+        .load = eod_menu_window_load,
+        .unload = eod_menu_window_unload,
+    });
+    
     window_stack_push(window, true);
     
     tick_timer_service_subscribe(HOUR_UNIT, handle_hour_tick);
@@ -480,6 +486,9 @@ static void settings_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell
                 case 1:
                     unit_menu_show();
                     break;
+                case 2:
+                    eod_menu_show();
+                    break;
             }
             break;
     }
@@ -540,14 +549,7 @@ static int16_t goal_menu_get_header_height_callback(MenuLayer *menu_layer, uint1
 
 static void goal_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
     // Use the row to specify which item we'll draw
-    switch (cell_index->row) {
-        case 0:
-            menu_cell_basic_draw(ctx, cell_layer, "Half Gallon", NULL, NULL);
-            break;
-        case 1:
-            menu_cell_basic_draw(ctx, cell_layer, "One Gallon", NULL, NULL);
-            break;
-    }
+    menu_cell_basic_draw(ctx, cell_layer, unit_to_string(cell_index->row + 4), NULL, NULL);
 }
 
 static void goal_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
@@ -616,20 +618,7 @@ static int16_t unit_menu_get_header_height_callback(MenuLayer *menu_layer, uint1
 
 static void unit_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
     // Use the row to specify which item we'll draw
-    switch (cell_index->row) {
-        case 0:
-            menu_cell_basic_draw(ctx, cell_layer, "Ounces", NULL, NULL);
-            break;
-        case 1:
-            menu_cell_basic_draw(ctx, cell_layer, "Cups", NULL, NULL);
-            break;
-        case 2:
-            menu_cell_basic_draw(ctx, cell_layer, "Pints", NULL, NULL);
-            break;
-        case 3:
-            menu_cell_basic_draw(ctx, cell_layer, "Quarts", NULL, NULL);
-            break;
-    }
+    menu_cell_basic_draw(ctx, cell_layer, unit_to_string(cell_index->row), NULL, NULL);
 }
 
 static void unit_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
@@ -673,3 +662,69 @@ static void unit_menu_window_unload(Window *window) {
     menu_layer_destroy(unit_menu_layer);
 }
 // End unit menu stuff
+
+
+
+// End of day menu stuff
+static void eod_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
+    menu_cell_basic_header_draw(ctx, cell_layer, "Change End of Day");
+}
+
+static uint16_t eod_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
+    return 1;
+}
+
+static uint16_t eod_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    return 8;
+}
+
+static int16_t eod_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    // This is a define provided in pebble.h that you may use for the default height
+    return MENU_CELL_BASIC_HEADER_HEIGHT;
+}
+
+static void eod_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+    // Use the row to specify which item we'll draw
+    menu_cell_basic_draw(ctx, cell_layer, eod_to_string(cell_index->row * 3), NULL, NULL);
+}
+
+static void eod_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+    end_of_day = cell_index->row * 3;
+    window_stack_pop(true);
+}
+
+static void eod_menu_show() {
+    window_stack_push(eod_menu_window, true);
+    
+    // Sets the selected unit in the menu
+    menu_layer_set_selected_index(eod_menu_layer, (MenuIndex) { .row = end_of_day / 3, .section = 0 }, MenuRowAlignCenter, false);
+}
+
+static void eod_menu_window_load(Window *window) {
+    Layer *menu_window_layer = window_get_root_layer(window);
+    GRect menu_bounds = layer_get_bounds(menu_window_layer);
+    
+    // Create the menu layer
+    eod_menu_layer = menu_layer_create(menu_bounds);
+    
+    // Bind the menu layer's click config provider to the window for interactivity
+    menu_layer_set_click_config_onto_window(eod_menu_layer, window);
+    
+    // Setup callbacks
+    menu_layer_set_callbacks(eod_menu_layer, NULL, (MenuLayerCallbacks){
+        .get_header_height = eod_menu_get_header_height_callback,
+        .draw_header = eod_menu_draw_header_callback,
+        .get_num_sections = eod_menu_get_num_sections_callback,
+        .get_num_rows = eod_menu_get_num_rows_callback,
+        .draw_row = eod_menu_draw_row_callback,
+        .select_click = eod_menu_select_callback,
+    });
+    
+    // Add it to the window for display
+    layer_add_child(menu_window_layer, menu_layer_get_layer(eod_menu_layer));
+}
+
+static void eod_menu_window_unload(Window *window) {
+    menu_layer_destroy(eod_menu_layer);
+}
+// End end of day menu stuff
