@@ -25,13 +25,6 @@
 
 static Window *window;
 
-static Window *settings_menu_window;
-static MenuLayer *settings_menu_layer;
-static Window *goal_menu_window;
-static MenuLayer *goal_menu_layer;
-static Window *unit_menu_window;
-static MenuLayer *unit_menu_layer;
-
 static GBitmap *action_icon_plus;
 static GBitmap *action_icon_settings;
 static GBitmap *action_icon_minus;
@@ -269,162 +262,6 @@ static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed) {
     }
 }
 
-static void settings_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
-    switch (section_index) {
-        case 0:
-            menu_cell_basic_header_draw(ctx, cell_layer, "Profile");
-            break;
-        case 1:
-            menu_cell_basic_header_draw(ctx, cell_layer, "Settings");
-            break;
-    }
-}
-
-static uint16_t settings_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
-    return 2;
-}
-
-static uint16_t settings_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
-    switch (section_index) {
-        case 0:
-            return 2;
-            
-        case 1:
-            return 3;
-            
-        default:
-            return 0;
-    }
-}
-
-static int16_t settings_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
-    // This is a define provided in pebble.h that you may use for the default height
-    return MENU_CELL_BASIC_HEADER_HEIGHT;
-}
-
-static void settings_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
-    // Determine which section we're going to draw in
-    switch (cell_index->section) {
-        case 0:
-            // Use the row to specify which item we'll draw
-            switch (cell_index->row) {
-                case 0:
-                    menu_cell_basic_draw(ctx, cell_layer, "View Profile", NULL, NULL);
-                    break;
-                case 1:
-                    menu_cell_basic_draw(ctx, cell_layer, "Reset Profile", NULL, NULL);
-                    break;
-            }
-            break;
-            
-        case 1:
-            switch (cell_index->row) {
-                case 0:
-                    menu_cell_basic_draw(ctx, cell_layer, "Daily Goal", "One Gallon", NULL);
-                    break;
-                case 1:
-                    menu_cell_basic_draw(ctx, cell_layer, "Drinking Unit", "Cups", NULL);
-                    break;
-                case 2:
-                    menu_cell_basic_draw(ctx, cell_layer, "End of Day", "12:00 AM", NULL);
-                    break;
-            }
-            break;
-    }
-}
-
-static void settings_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
-    switch (cell_index->section) {
-        case 1:
-            switch (cell_index->row) {
-                case 0:
-                    goal_menu_show();
-                    break;
-                case 1:
-                    unit_menu_show();
-                    break;
-            }
-            break;
-    }
-}
-static void goal_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
-    menu_cell_basic_header_draw(ctx, cell_layer, "Change Daily Goal");
-}
-
-static uint16_t goal_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
-    return 1;
-}
-
-static uint16_t goal_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
-    return 2;
-}
-
-static int16_t goal_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
-    // This is a define provided in pebble.h that you may use for the default height
-    return MENU_CELL_BASIC_HEADER_HEIGHT;
-}
-
-static void goal_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
-    // Use the row to specify which item we'll draw
-    switch (cell_index->row) {
-        case 0:
-            menu_cell_basic_draw(ctx, cell_layer, "Half Gallon", NULL, NULL);
-            break;
-        case 1:
-            menu_cell_basic_draw(ctx, cell_layer, "One Gallon", NULL, NULL);
-            break;
-    }
-}
-
-static void goal_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
-    goal = cell_index->row + 4;
-    set_image_for_goal();
-    update_streak_count();
-    update_volume_display();
-    window_stack_pop(true);
-}
-
-static void unit_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
-    menu_cell_basic_header_draw(ctx, cell_layer, "Change Drinking Unit");
-}
-
-static uint16_t unit_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
-    return 1;
-}
-
-static uint16_t unit_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
-    return 4;
-}
-
-static int16_t unit_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
-    // This is a define provided in pebble.h that you may use for the default height
-    return MENU_CELL_BASIC_HEADER_HEIGHT;
-}
-
-static void unit_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
-    // Use the row to specify which item we'll draw
-    switch (cell_index->row) {
-        case 0:
-            menu_cell_basic_draw(ctx, cell_layer, "Ounces", NULL, NULL);
-            break;
-        case 1:
-            menu_cell_basic_draw(ctx, cell_layer, "Cups", NULL, NULL);
-            break;
-        case 2:
-            menu_cell_basic_draw(ctx, cell_layer, "Pints", NULL, NULL);
-            break;
-        case 3:
-            menu_cell_basic_draw(ctx, cell_layer, "Quarts", NULL, NULL);
-            break;
-    }
-}
-
-static void unit_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
-    unit = cell_index->row;
-    update_volume_display();
-    window_stack_pop(true);
-}
-
 static void load_persistent_storage() {
     current_oz = persist_exists(CURRENT_OZ_KEY) ? persist_read_int(CURRENT_OZ_KEY) : 0;
     goal = persist_exists(GOAL_KEY) ? persist_read_int(GOAL_KEY) : GALLON;
@@ -492,108 +329,6 @@ static void window_unload(Window *window) {
     action_bar_layer_destroy(action_bar);
 }
 
-static void settings_menu_window_load(Window *window) {
-    Layer *menu_window_layer = window_get_root_layer(window);
-    GRect menu_bounds = layer_get_bounds(menu_window_layer);
-    
-    // Create the menu layer
-    settings_menu_layer = menu_layer_create(menu_bounds);
-    
-    // Bind the menu layer's click config provider to the window for interactivity
-    menu_layer_set_click_config_onto_window(settings_menu_layer, window);
-    
-    // Setup callbacks
-    menu_layer_set_callbacks(settings_menu_layer, NULL, (MenuLayerCallbacks){
-        .get_header_height = settings_menu_get_header_height_callback,
-        .draw_header = settings_menu_draw_header_callback,
-        .get_num_sections = settings_menu_get_num_sections_callback,
-        .get_num_rows = settings_menu_get_num_rows_callback,
-        .draw_row = settings_menu_draw_row_callback,
-        .select_click = settings_menu_select_callback,
-    });
-    
-    // Add it to the window for display
-    layer_add_child(menu_window_layer, menu_layer_get_layer(settings_menu_layer));
-}
-
-static void settings_menu_window_unload(Window *window) {
-    menu_layer_destroy(settings_menu_layer);
-}
-
-static void goal_menu_window_load(Window *window) {
-    Layer *menu_window_layer = window_get_root_layer(window);
-    GRect menu_bounds = layer_get_bounds(menu_window_layer);
-    
-    // Create the menu layer
-    goal_menu_layer = menu_layer_create(menu_bounds);
-    
-    // Bind the menu layer's click config provider to the window for interactivity
-    menu_layer_set_click_config_onto_window(goal_menu_layer, window);
-    
-    // Setup callbacks
-    menu_layer_set_callbacks(goal_menu_layer, NULL, (MenuLayerCallbacks){
-        .get_header_height = goal_menu_get_header_height_callback,
-        .draw_header = goal_menu_draw_header_callback,
-        .get_num_sections = goal_menu_get_num_sections_callback,
-        .get_num_rows = goal_menu_get_num_rows_callback,
-        .draw_row = goal_menu_draw_row_callback,
-        .select_click = goal_menu_select_callback,
-    });
-    
-    // Add it to the window for display
-    layer_add_child(menu_window_layer, menu_layer_get_layer(goal_menu_layer));
-}
-
-static void goal_menu_window_unload(Window *window) {
-    menu_layer_destroy(goal_menu_layer);
-}
-
-static void unit_menu_window_load(Window *window) {
-    Layer *menu_window_layer = window_get_root_layer(window);
-    GRect menu_bounds = layer_get_bounds(menu_window_layer);
-    
-    // Create the menu layer
-    unit_menu_layer = menu_layer_create(menu_bounds);
-    
-    // Bind the menu layer's click config provider to the window for interactivity
-    menu_layer_set_click_config_onto_window(unit_menu_layer, window);
-    
-    // Setup callbacks
-    menu_layer_set_callbacks(unit_menu_layer, NULL, (MenuLayerCallbacks){
-        .get_header_height = unit_menu_get_header_height_callback,
-        .draw_header = unit_menu_draw_header_callback,
-        .get_num_sections = unit_menu_get_num_sections_callback,
-        .get_num_rows = unit_menu_get_num_rows_callback,
-        .draw_row = unit_menu_draw_row_callback,
-        .select_click = unit_menu_select_callback,
-    });
-    
-    // Add it to the window for display
-    layer_add_child(menu_window_layer, menu_layer_get_layer(unit_menu_layer));
-}
-
-static void unit_menu_window_unload(Window *window) {
-    menu_layer_destroy(unit_menu_layer);
-}
-
-static void settings_menu_show() {
-    window_stack_push(settings_menu_window, true);
-    
-}
-
-static void goal_menu_show() {
-    window_stack_push(goal_menu_window, true);
-    
-    // Sets the selected goal in the menu
-    menu_layer_set_selected_index(goal_menu_layer, (MenuIndex) { .row = goal - 4, .section = 0 }, MenuRowAlignCenter, false);
-}
-
-static void unit_menu_show() {
-    window_stack_push(unit_menu_window, true);
-    
-    // Sets the selected unit in the menu
-    menu_layer_set_selected_index(unit_menu_layer, (MenuIndex) { .row = unit, .section = 0 }, MenuRowAlignCenter, false);
-}
 
 static void init(void) {
     load_persistent_storage();
@@ -652,3 +387,270 @@ int main(void) {
     app_event_loop();
     deinit();
 }
+
+
+// Settings menu stuff
+static void settings_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
+    switch (section_index) {
+        case 0:
+            menu_cell_basic_header_draw(ctx, cell_layer, "Profile");
+            break;
+        case 1:
+            menu_cell_basic_header_draw(ctx, cell_layer, "Settings");
+            break;
+    }
+}
+
+static uint16_t settings_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
+    return 2;
+}
+
+static uint16_t settings_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    switch (section_index) {
+        case 0:
+            return 1;
+            
+        case 1:
+            return 3;
+            
+        default:
+            return 0;
+    }
+}
+
+static int16_t settings_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    // This is a define provided in pebble.h that you may use for the default height
+    return MENU_CELL_BASIC_HEADER_HEIGHT;
+}
+
+static void settings_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+    // Determine which section we're going to draw in
+    switch (cell_index->section) {
+        case 0:
+            // Use the row to specify which item we'll draw
+            switch (cell_index->row) {
+                case 0:
+                    menu_cell_basic_draw(ctx, cell_layer, "View Profile", NULL, NULL);
+                    break;
+            }
+            break;
+            
+        case 1:
+            switch (cell_index->row) {
+                case 0:
+                    menu_cell_basic_draw(ctx, cell_layer, "Daily Goal", unit_to_string(goal), NULL);
+                    break;
+                case 1:
+                    menu_cell_basic_draw(ctx, cell_layer, "Drinking Unit", unit_to_string(unit), NULL);
+                    break;
+                case 2:
+                    menu_cell_basic_draw(ctx, cell_layer, "End of Day", "12:00 AM", NULL);
+                    break;
+            }
+            break;
+    }
+}
+
+static void settings_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+    switch (cell_index->section) {
+        case 1:
+            switch (cell_index->row) {
+                case 0:
+                    goal_menu_show();
+                    break;
+                case 1:
+                    unit_menu_show();
+                    break;
+            }
+            break;
+    }
+}
+
+static void settings_menu_show() {
+    window_stack_push(settings_menu_window, true);
+}
+
+static void settings_menu_window_load(Window *window) {
+    Layer *menu_window_layer = window_get_root_layer(window);
+    GRect menu_bounds = layer_get_bounds(menu_window_layer);
+    
+    // Create the menu layer
+    settings_menu_layer = menu_layer_create(menu_bounds);
+    
+    // Bind the menu layer's click config provider to the window for interactivity
+    menu_layer_set_click_config_onto_window(settings_menu_layer, window);
+    
+    // Setup callbacks
+    menu_layer_set_callbacks(settings_menu_layer, NULL, (MenuLayerCallbacks){
+        .get_header_height = settings_menu_get_header_height_callback,
+        .draw_header = settings_menu_draw_header_callback,
+        .get_num_sections = settings_menu_get_num_sections_callback,
+        .get_num_rows = settings_menu_get_num_rows_callback,
+        .draw_row = settings_menu_draw_row_callback,
+        .select_click = settings_menu_select_callback,
+    });
+    
+    // Add it to the window for display
+    layer_add_child(menu_window_layer, menu_layer_get_layer(settings_menu_layer));
+}
+
+static void settings_menu_window_unload(Window *window) {
+    menu_layer_destroy(settings_menu_layer);
+}
+// End settings menu stuff
+
+
+
+// Goal menu stuff
+static void goal_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
+    menu_cell_basic_header_draw(ctx, cell_layer, "Change Daily Goal");
+}
+
+static uint16_t goal_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
+    return 1;
+}
+
+static uint16_t goal_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    return 2;
+}
+
+static int16_t goal_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    // This is a define provided in pebble.h that you may use for the default height
+    return MENU_CELL_BASIC_HEADER_HEIGHT;
+}
+
+static void goal_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+    // Use the row to specify which item we'll draw
+    switch (cell_index->row) {
+        case 0:
+            menu_cell_basic_draw(ctx, cell_layer, "Half Gallon", NULL, NULL);
+            break;
+        case 1:
+            menu_cell_basic_draw(ctx, cell_layer, "One Gallon", NULL, NULL);
+            break;
+    }
+}
+
+static void goal_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+    goal = cell_index->row + 4;
+    set_image_for_goal();
+    update_streak_count();
+    update_volume_display();
+    window_stack_pop(true);
+}
+
+static void goal_menu_show() {
+    window_stack_push(goal_menu_window, true);
+    
+    // Sets the selected goal in the menu
+    menu_layer_set_selected_index(goal_menu_layer, (MenuIndex) { .row = goal - 4, .section = 0 }, MenuRowAlignCenter, false);
+}
+
+static void goal_menu_window_load(Window *window) {
+    Layer *menu_window_layer = window_get_root_layer(window);
+    GRect menu_bounds = layer_get_bounds(menu_window_layer);
+    
+    // Create the menu layer
+    goal_menu_layer = menu_layer_create(menu_bounds);
+    
+    // Bind the menu layer's click config provider to the window for interactivity
+    menu_layer_set_click_config_onto_window(goal_menu_layer, window);
+    
+    // Setup callbacks
+    menu_layer_set_callbacks(goal_menu_layer, NULL, (MenuLayerCallbacks){
+        .get_header_height = goal_menu_get_header_height_callback,
+        .draw_header = goal_menu_draw_header_callback,
+        .get_num_sections = goal_menu_get_num_sections_callback,
+        .get_num_rows = goal_menu_get_num_rows_callback,
+        .draw_row = goal_menu_draw_row_callback,
+        .select_click = goal_menu_select_callback,
+    });
+    
+    // Add it to the window for display
+    layer_add_child(menu_window_layer, menu_layer_get_layer(goal_menu_layer));
+}
+
+static void goal_menu_window_unload(Window *window) {
+    menu_layer_destroy(goal_menu_layer);
+}
+// End goal menu stuff
+
+
+
+// Unit menu stuff
+static void unit_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
+    menu_cell_basic_header_draw(ctx, cell_layer, "Change Drinking Unit");
+}
+
+static uint16_t unit_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
+    return 1;
+}
+
+static uint16_t unit_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    return 4;
+}
+
+static int16_t unit_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    // This is a define provided in pebble.h that you may use for the default height
+    return MENU_CELL_BASIC_HEADER_HEIGHT;
+}
+
+static void unit_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+    // Use the row to specify which item we'll draw
+    switch (cell_index->row) {
+        case 0:
+            menu_cell_basic_draw(ctx, cell_layer, "Ounces", NULL, NULL);
+            break;
+        case 1:
+            menu_cell_basic_draw(ctx, cell_layer, "Cups", NULL, NULL);
+            break;
+        case 2:
+            menu_cell_basic_draw(ctx, cell_layer, "Pints", NULL, NULL);
+            break;
+        case 3:
+            menu_cell_basic_draw(ctx, cell_layer, "Quarts", NULL, NULL);
+            break;
+    }
+}
+
+static void unit_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+    unit = cell_index->row;
+    update_volume_display();
+    window_stack_pop(true);
+}
+
+static void unit_menu_show() {
+    window_stack_push(unit_menu_window, true);
+    
+    // Sets the selected unit in the menu
+    menu_layer_set_selected_index(unit_menu_layer, (MenuIndex) { .row = unit, .section = 0 }, MenuRowAlignCenter, false);
+}
+
+static void unit_menu_window_load(Window *window) {
+    Layer *menu_window_layer = window_get_root_layer(window);
+    GRect menu_bounds = layer_get_bounds(menu_window_layer);
+    
+    // Create the menu layer
+    unit_menu_layer = menu_layer_create(menu_bounds);
+    
+    // Bind the menu layer's click config provider to the window for interactivity
+    menu_layer_set_click_config_onto_window(unit_menu_layer, window);
+    
+    // Setup callbacks
+    menu_layer_set_callbacks(unit_menu_layer, NULL, (MenuLayerCallbacks){
+        .get_header_height = unit_menu_get_header_height_callback,
+        .draw_header = unit_menu_draw_header_callback,
+        .get_num_sections = unit_menu_get_num_sections_callback,
+        .get_num_rows = unit_menu_get_num_rows_callback,
+        .draw_row = unit_menu_draw_row_callback,
+        .select_click = unit_menu_select_callback,
+    });
+    
+    // Add it to the window for display
+    layer_add_child(menu_window_layer, menu_layer_get_layer(unit_menu_layer));
+}
+
+static void unit_menu_window_unload(Window *window) {
+    menu_layer_destroy(unit_menu_layer);
+}
+// End unit menu stuff

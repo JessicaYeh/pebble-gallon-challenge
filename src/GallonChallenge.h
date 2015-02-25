@@ -32,43 +32,48 @@ static void click_config_provider(void *context);
 
 static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed);
 
+static void load_persistent_storage();
+static void save_persistent_storage();
+
+static void window_load(Window *window);
+static void window_unload(Window *window);
+static void init(void);
+static void deinit(void);
+
+static Window *settings_menu_window;
+static MenuLayer *settings_menu_layer;
 static void settings_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data);
 static uint16_t settings_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data);
 static uint16_t settings_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data);
 static int16_t settings_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data);
 static void settings_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data);
 static void settings_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data);
+static void settings_menu_show();
+static void settings_menu_window_load(Window *window);
+static void settings_menu_window_unload(Window *window);
 
+static Window *goal_menu_window;
+static MenuLayer *goal_menu_layer;
 static void goal_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data);
 static uint16_t goal_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data);
 static uint16_t goal_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data);
 static int16_t goal_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data);
 static void goal_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data);
 static void goal_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data);
+static void goal_menu_show();
+static void goal_menu_window_load(Window *window);
+static void goal_menu_window_unload(Window *window);
 
+static Window *unit_menu_window;
+static MenuLayer *unit_menu_layer;
 static void unit_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data);
 static uint16_t unit_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data);
 static uint16_t unit_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data);
 static int16_t unit_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data);
 static void unit_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data);
 static void unit_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data);
-
-static void load_persistent_storage();
-static void save_persistent_storage();
-
-static void window_load(Window *window);
-static void window_unload(Window *window);
-static void settings_menu_window_load(Window *window);
-static void settings_menu_window_unload(Window *window);
-static void goal_menu_window_load(Window *window);
-static void goal_menu_window_unload(Window *window);
+static void unit_menu_show();
 static void unit_menu_window_load(Window *window);
 static void unit_menu_window_unload(Window *window);
-static void settings_menu_show();
-static void goal_menu_show();
-static void unit_menu_show();
-
-static void init(void);
-static void deinit(void);
 
 #endif
