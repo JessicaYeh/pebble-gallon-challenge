@@ -22,14 +22,6 @@
 #define PINT_IN_GAL 8
 #define QUART_IN_GAL 4
 
-typedef enum {
-    OUNCE = 0,
-    CUP = 1,
-    PINT = 2,
-    QUART = 3,
-    HALF_GALLON = 4,
-    GALLON = 5
-} Unit;
 
 static Window *window;
 
@@ -61,6 +53,18 @@ static time_t current_date;
 static uint16_t current_oz;
 static time_t last_streak_date;
 static uint16_t streak_count;
+
+static const char* unit_to_string(Unit u) {
+    switch (u) {
+        case OUNCE:       return "Ounces";
+        case CUP:         return "Cups";
+        case PINT:        return "Pints";
+        case QUART:       return "Quarts";
+        case HALF_GALLON: return "Half Gallon";
+        case GALLON:      return "One Gallon";
+        default:          return "";
+    }
+}
 
 static bool are_dates_equal(time_t date1, time_t date2) {
     struct tm *old_date = localtime(&date1);
@@ -155,21 +159,7 @@ static void update_volume_display() {
     static char body_text[20];
     
     uint16_t denominator = get_unit_in_gal() * get_goal_scale();
-    switch (unit) {
-        case CUP:
-            snprintf(body_text, sizeof(body_text), "%u/%u cups", calc_current_volume(), denominator);
-            break;
-        case PINT:
-            snprintf(body_text, sizeof(body_text), "%u/%u pints", calc_current_volume(), denominator);
-            break;
-        case QUART:
-            snprintf(body_text, sizeof(body_text), "%u/%u quarts", calc_current_volume(), denominator);
-            break;
-        default:
-            snprintf(body_text, sizeof(body_text), "%u/%u ounces", calc_current_volume(), denominator);
-            break;
-    }
-    
+    snprintf(body_text, sizeof(body_text), "%u/%u %s", calc_current_volume(), denominator, unit_to_string(unit));
     text_layer_set_text(text_layer, body_text);
     
     layer_set_frame(text_layer_get_layer(white_layer), GRect(0, 37, 124, (1 - (float)current_oz / (float)OZ_IN_GAL / get_goal_scale()) * 93));

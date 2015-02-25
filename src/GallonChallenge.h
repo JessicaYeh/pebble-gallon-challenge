@@ -1,6 +1,16 @@
 #ifndef GALLON_CHALLENGE_HEADER
 #define GALLON_CHALLENGE_HEADER
 
+typedef enum {
+    OUNCE = 0,
+    CUP = 1,
+    PINT = 2,
+    QUART = 3,
+    HALF_GALLON = 4,
+    GALLON = 5
+} Unit;
+
+static const char* unit_to_string(Unit u);
 static bool are_dates_equal(time_t date1, time_t date2);
 static time_t get_todays_date();
 static time_t get_yesterdays_date();
