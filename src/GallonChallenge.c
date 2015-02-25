@@ -33,8 +33,10 @@ typedef enum {
 
 static Window *window;
 
-static Window *menu_window;
-static MenuLayer *menu_layer;
+static Window *settings_menu_window;
+static MenuLayer *settings_menu_layer;
+static Window *unit_menu_window;
+static MenuLayer *unit_menu_layer;
 
 static GBitmap *action_icon_plus;
 static GBitmap *action_icon_settings;
@@ -236,8 +238,7 @@ static void decrement_volume() {
 }
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
-    window_stack_push(menu_window, true);
-    set_selected_unit_in_menu();
+    settings_menu_show();
 }
 
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -259,28 +260,105 @@ static void click_config_provider(void *context) {
 static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed) {
     if (tick_time->tm_hour == 0) {
         reset_current_date_and_volume_if_needed();
+        update_streak_display();
         update_volume_display();
     }
 }
 
-static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
-    menu_cell_basic_header_draw(ctx, cell_layer, "Set Drinking Unit");
+static void settings_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
+    switch (section_index) {
+        case 0:
+            menu_cell_basic_header_draw(ctx, cell_layer, "Profile");
+            break;
+        case 1:
+            menu_cell_basic_header_draw(ctx, cell_layer, "Settings");
+            break;
+    }
 }
 
-static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
-    return 1;
+static uint16_t settings_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
+    return 2;
 }
 
-static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
-    return 4;
+static uint16_t settings_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    switch (section_index) {
+        case 0:
+            return 2;
+            
+        case 1:
+            return 3;
+            
+        default:
+            return 0;
+    }
 }
 
-static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+static int16_t settings_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
     // This is a define provided in pebble.h that you may use for the default height
     return MENU_CELL_BASIC_HEADER_HEIGHT;
 }
 
-static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+static void settings_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+    // Determine which section we're going to draw in
+    switch (cell_index->section) {
+        case 0:
+            // Use the row to specify which item we'll draw
+            switch (cell_index->row) {
+                case 0:
+                    menu_cell_basic_draw(ctx, cell_layer, "View Profile", NULL, NULL);
+                    break;
+                case 1:
+                    menu_cell_basic_draw(ctx, cell_layer, "Reset Profile", NULL, NULL);
+                    break;
+            }
+            break;
+            
+        case 1:
+            switch (cell_index->row) {
+                case 0:
+                    menu_cell_basic_draw(ctx, cell_layer, "Daily Goal", "One Gallon", NULL);
+                    break;
+                case 1:
+                    menu_cell_basic_draw(ctx, cell_layer, "Drinking Unit", "Cups", NULL);
+                    break;
+                case 2:
+                    menu_cell_basic_draw(ctx, cell_layer, "End of Day", "12:00 AM", NULL);
+                    break;
+            }
+            break;
+    }
+}
+
+static void settings_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+    switch (cell_index->section) {
+        case 1:
+            switch (cell_index->row) {
+                case 1:
+                    unit_menu_show();
+                    break;
+            }
+            break;
+    }
+}
+
+static void unit_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
+    menu_cell_basic_header_draw(ctx, cell_layer, "Set Drinking Unit");
+}
+
+static uint16_t unit_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
+    return 1;
+}
+
+static uint16_t unit_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    return 4;
+}
+
+static int16_t unit_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    // This is a define provided in pebble.h that you may use for the default height
+    return MENU_CELL_BASIC_HEADER_HEIGHT;
+}
+
+static void unit_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
     // Use the row to specify which item we'll draw
     switch (cell_index->row) {
         case 0:
@@ -298,7 +376,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
     }
 }
 
-static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+static void unit_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
     unit = cell_index->row;
     update_volume_display();
     window_stack_pop(true);
@@ -320,10 +398,6 @@ static void save_persistent_storage() {
     persist_write_int(STREAK_COUNT_KEY, streak_count);
     persist_write_int(LAST_STREAK_DATE_KEY, (int)last_streak_date);
     persist_write_int(CURRENT_DATE_KEY, (int)current_date);
-}
-
-static void set_selected_unit_in_menu() {
-    menu_layer_set_selected_index(menu_layer, (MenuIndex) { .row = unit, .section = 0 }, MenuRowAlignCenter, false);
 }
 
 static void window_load(Window *window) {
@@ -376,32 +450,72 @@ static void window_unload(Window *window) {
     action_bar_layer_destroy(action_bar);
 }
 
-static void menu_window_load(Window *window) {
+static void settings_menu_window_load(Window *menu_window) {
     Layer *menu_window_layer = window_get_root_layer(menu_window);
     GRect menu_bounds = layer_get_bounds(menu_window_layer);
     
     // Create the menu layer
-    menu_layer = menu_layer_create(menu_bounds);
-    
-    // Set all the callbacks for the menu layer
-    menu_layer_set_callbacks(menu_layer, NULL, (MenuLayerCallbacks){
-        .get_header_height = menu_get_header_height_callback,
-        .draw_header = menu_draw_header_callback,
-        .get_num_sections = menu_get_num_sections_callback,
-        .get_num_rows = menu_get_num_rows_callback,
-        .draw_row = menu_draw_row_callback,
-        .select_click = menu_select_callback,
-    });
+    settings_menu_layer = menu_layer_create(menu_bounds);
     
     // Bind the menu layer's click config provider to the window for interactivity
-    menu_layer_set_click_config_onto_window(menu_layer, menu_window);
+    menu_layer_set_click_config_onto_window(settings_menu_layer, menu_window);
+    
+    // Setup callbacks
+    menu_layer_set_callbacks(settings_menu_layer, NULL, (MenuLayerCallbacks){
+        .get_header_height = settings_menu_get_header_height_callback,
+        .draw_header = settings_menu_draw_header_callback,
+        .get_num_sections = settings_menu_get_num_sections_callback,
+        .get_num_rows = settings_menu_get_num_rows_callback,
+        .draw_row = settings_menu_draw_row_callback,
+        .select_click = settings_menu_select_callback,
+    });
     
     // Add it to the window for display
-    layer_add_child(menu_window_layer, menu_layer_get_layer(menu_layer));
+    layer_add_child(menu_window_layer, menu_layer_get_layer(settings_menu_layer));
 }
 
-static void menu_window_unload(Window *window) {
-    menu_layer_destroy(menu_layer);
+static void settings_menu_window_unload(Window *window) {
+    menu_layer_destroy(settings_menu_layer);
+}
+
+static void unit_menu_window_load(Window *menu_window) {
+    Layer *menu_window_layer = window_get_root_layer(menu_window);
+    GRect menu_bounds = layer_get_bounds(menu_window_layer);
+    
+    // Create the menu layer
+    unit_menu_layer = menu_layer_create(menu_bounds);
+    
+    // Bind the menu layer's click config provider to the window for interactivity
+    menu_layer_set_click_config_onto_window(unit_menu_layer, menu_window);
+    
+    // Setup callbacks
+    menu_layer_set_callbacks(unit_menu_layer, NULL, (MenuLayerCallbacks){
+        .get_header_height = unit_menu_get_header_height_callback,
+        .draw_header = unit_menu_draw_header_callback,
+        .get_num_sections = unit_menu_get_num_sections_callback,
+        .get_num_rows = unit_menu_get_num_rows_callback,
+        .draw_row = unit_menu_draw_row_callback,
+        .select_click = unit_menu_select_callback,
+    });
+    
+    // Add it to the window for display
+    layer_add_child(menu_window_layer, menu_layer_get_layer(unit_menu_layer));
+}
+
+static void unit_menu_window_unload(Window *window) {
+    menu_layer_destroy(unit_menu_layer);
+}
+
+static void unit_menu_show() {
+    window_stack_push(unit_menu_window, true);
+    
+    // Sets the selected unit in the menu
+    menu_layer_set_selected_index(unit_menu_layer, (MenuIndex) { .row = unit, .section = 0 }, MenuRowAlignCenter, false);
+}
+
+static void settings_menu_show() {
+    window_stack_push(settings_menu_window, true);
+    
 }
 
 static void init(void) {
@@ -420,10 +534,16 @@ static void init(void) {
         .unload = window_unload,
     });
     
-    menu_window = window_create();
-    window_set_window_handlers(menu_window, (WindowHandlers) {
-        .load = menu_window_load,
-        .unload = menu_window_unload,
+    settings_menu_window = window_create();
+    window_set_window_handlers(settings_menu_window, (WindowHandlers) {
+        .load = settings_menu_window_load,
+        .unload = settings_menu_window_unload,
+    });
+    
+    unit_menu_window = window_create();
+    window_set_window_handlers(unit_menu_window, (WindowHandlers) {
+        .load = unit_menu_window_load,
+        .unload = unit_menu_window_unload,
     });
     
     window_stack_push(window, true);
@@ -441,7 +561,8 @@ static void deinit(void) {
     gbitmap_destroy(gallon_image);
     
     window_destroy(window);
-    window_destroy(menu_window);
+    window_destroy(settings_menu_window);
+    window_destroy(unit_menu_window);
 }
 
 int main(void) {
