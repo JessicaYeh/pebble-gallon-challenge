@@ -32,6 +32,7 @@ static GBitmap *action_icon_settings;
 static GBitmap *action_icon_minus;
 static GBitmap *gallon_filled_image;
 static GBitmap *gallon_image;
+static GBitmap *star;
 
 static ActionBarLayer *action_bar;
 
@@ -41,6 +42,7 @@ static TextLayer *text_layer;
 static TextLayer *white_layer;
 static BitmapLayer *gallon_filled_layer;
 static BitmapLayer *gallon_layer;
+static BitmapLayer *star_layer;
 
 static Unit goal;
 static Unit unit;
@@ -168,11 +170,20 @@ static void set_image_for_goal() {
 static void update_volume_display() {
     static char body_text[20];
     
+    uint16_t numerator = calc_current_volume();
     uint16_t denominator = get_unit_in_gal() * get_goal_scale();
-    snprintf(body_text, sizeof(body_text), "%u/%u %s", calc_current_volume(), denominator, unit_to_string(unit));
+    snprintf(body_text, sizeof(body_text), "%u/%u %s", numerator, denominator, unit_to_string(unit));
     text_layer_set_text(text_layer, body_text);
     
     layer_set_frame(text_layer_get_layer(white_layer), GRect(0, 37, 124, (1 - (float)current_oz / (float)OZ_IN_GAL / get_goal_scale()) * 93));
+    
+    // Only show the star if the goal is met
+    bool is_star_visible = !layer_get_hidden(bitmap_layer_get_layer(star_layer));
+    if (numerator == denominator && !is_star_visible) {
+        layer_set_hidden(bitmap_layer_get_layer(star_layer), false);
+    } else if (numerator != denominator && is_star_visible) {
+        layer_set_hidden(bitmap_layer_get_layer(star_layer), true);
+    }
 }
 
 static void update_streak_display() {
@@ -335,6 +346,10 @@ static void window_load(Window *window) {
     bitmap_layer_set_compositing_mode(gallon_layer, GCompOpClear);
     layer_add_child(window_layer, bitmap_layer_get_layer(gallon_layer));
     
+    star_layer = bitmap_layer_create(GRect(0, 30, 124, 104));
+    bitmap_layer_set_bitmap(star_layer, star);
+    layer_add_child(window_layer, bitmap_layer_get_layer(star_layer));
+    
     set_image_for_goal();
     reset_current_date_and_volume_if_needed();
 }
@@ -345,9 +360,9 @@ static void window_unload(Window *window) {
     text_layer_destroy(white_layer);
     bitmap_layer_destroy(gallon_layer);
     bitmap_layer_destroy(gallon_filled_layer);
+    bitmap_layer_destroy(star_layer);
     action_bar_layer_destroy(action_bar);
 }
-
 
 static void init(void) {
     load_persistent_storage();
@@ -355,6 +370,7 @@ static void init(void) {
     action_icon_plus = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_PLUS);
     action_icon_settings = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_SETTINGS);
     action_icon_minus = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_MINUS);
+    star = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STAR);
 
     window = window_create();
     window_set_click_config_provider(window, click_config_provider);
@@ -400,11 +416,13 @@ static void deinit(void) {
     gbitmap_destroy(action_icon_minus);
     gbitmap_destroy(gallon_filled_image);
     gbitmap_destroy(gallon_image);
+    gbitmap_destroy(star);
     
     window_destroy(window);
     window_destroy(settings_menu_window);
     window_destroy(goal_menu_window);
     window_destroy(unit_menu_window);
+    window_destroy(eod_menu_window);
 }
 
 int main(void) {

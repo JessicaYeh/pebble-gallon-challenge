@@ -47,6 +47,11 @@
         "type": "png-trans",
         "name": "IMAGE_HALF_GALLON",
         "file": "images/half_gallon.png"
+      },
+      {
+        "type": "png",
+        "name": "IMAGE_STAR",
+        "file": "images/star.png"
       }
     ]
   }
