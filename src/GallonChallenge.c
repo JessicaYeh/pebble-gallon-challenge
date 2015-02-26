@@ -15,6 +15,10 @@
 #define GOAL_KEY 1005
 // Key for saving end of day
 #define EOD_KEY 1006
+// Keys for saving profile info
+#define TOTAL_CONSUMED_KEY 1007
+#define LONGEST_STREAK_KEY 1008
+#define DRINKING_SINCE_KEY 1009
 
 #define OZ_IN_CUP 8
 #define OZ_IN_PINT 16
@@ -51,6 +55,10 @@ static uint16_t current_oz;
 static time_t last_streak_date;
 static uint16_t streak_count;
 static uint16_t end_of_day;
+
+static uint32_t total_consumed;
+static uint16_t longest_streak;
+static time_t drinking_since;
 
 static const char* unit_to_string(Unit u) {
     switch (u) {
@@ -194,20 +202,29 @@ static void update_streak_display() {
 
 // Increase the current volume by one unit
 static void increment_volume() {
+    uint16_t volume_increase = 0;
     switch (unit) {
         case CUP:
-            current_oz += OZ_IN_CUP;
+            volume_increase = OZ_IN_CUP;
             break;
         case PINT:
-            current_oz += OZ_IN_PINT;
+            volume_increase = OZ_IN_PINT;
             break;
         case QUART:
-            current_oz += OZ_IN_QUART;
+            volume_increase = OZ_IN_QUART;
             break;
         default:
-            current_oz++;
+            volume_increase = 1;
             break;
     }
+    
+    uint16_t oz_in_goal = OZ_IN_GAL * get_goal_scale();
+    if (current_oz + volume_increase > oz_in_goal) {
+        total_consumed += oz_in_goal - current_oz;
+    } else if (current_oz < oz_in_goal) {
+        total_consumed += volume_increase;
+    }
+    current_oz += volume_increase;
     
     update_streak_count();
     update_volume_display();
@@ -215,24 +232,29 @@ static void increment_volume() {
 
 // Decrease the current volume by one unit
 static void decrement_volume() {
+    uint16_t volume_decrease = 0;
+    
     switch (unit) {
         case CUP:
-            current_oz -= OZ_IN_CUP;
+            volume_decrease = OZ_IN_CUP;
             break;
         case PINT:
-            current_oz -= OZ_IN_PINT;
+            volume_decrease = OZ_IN_PINT;
             break;
         case QUART:
-            current_oz -= OZ_IN_QUART;
+            volume_decrease = OZ_IN_QUART;
             break;
         default:
-            current_oz--;
+            volume_decrease = 1;
             break;
     }
     
-    // Since unsigned, will wrap around to large numbers
-    if (current_oz > OZ_IN_GAL * get_goal_scale()) {
+    if (current_oz < volume_decrease) {
+        total_consumed -= volume_decrease - current_oz;
         current_oz = 0;
+    } else {
+        total_consumed -= volume_decrease;
+        current_oz -= volume_decrease;
     }
     
     update_streak_count();
@@ -252,16 +274,29 @@ static void update_streak_count() {
         if (!are_dates_equal(last_streak_date, today)) {
             last_streak_date = today;
             streak_count++;
+            if (streak_count > longest_streak) {
+                longest_streak = streak_count;
+            }
         }
     } else if (current_oz < goal_oz && are_dates_equal(last_streak_date, today)) {
         // If the last streak date is today's date, since the goal is now no longer
         // met, set the last streak date to the previous date and decrement the
         // streak count.
         last_streak_date = get_yesterdays_date();
+        if (streak_count == longest_streak) {
+            longest_streak--;
+        }
         streak_count--;
     }
     
     update_streak_display();
+}
+
+static void reset_profile() {
+    total_consumed = current_oz;
+    longest_streak = streak_count;
+    drinking_since = get_todays_date();
+    layer_mark_dirty(menu_layer_get_layer(profile_menu_layer));
 }
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -298,6 +333,9 @@ static void load_persistent_storage() {
     streak_count = persist_exists(STREAK_COUNT_KEY) ? persist_read_int(STREAK_COUNT_KEY) : 0;
     last_streak_date = persist_exists(LAST_STREAK_DATE_KEY) ? persist_read_int(LAST_STREAK_DATE_KEY) : get_yesterdays_date();
     current_date = persist_exists(CURRENT_DATE_KEY) ? persist_read_int(CURRENT_DATE_KEY) : get_todays_date();
+    total_consumed = persist_exists(TOTAL_CONSUMED_KEY) ? persist_read_int(TOTAL_CONSUMED_KEY) : 0;
+    longest_streak = persist_exists(LONGEST_STREAK_KEY) ? persist_read_int(LONGEST_STREAK_KEY) : 0;
+    drinking_since = persist_exists(DRINKING_SINCE_KEY) ? persist_read_int(DRINKING_SINCE_KEY) : get_todays_date();
 }
 
 static void save_persistent_storage() {
@@ -308,6 +346,9 @@ static void save_persistent_storage() {
     persist_write_int(STREAK_COUNT_KEY, streak_count);
     persist_write_int(LAST_STREAK_DATE_KEY, (int)last_streak_date);
     persist_write_int(CURRENT_DATE_KEY, (int)current_date);
+    persist_write_int(TOTAL_CONSUMED_KEY, total_consumed);
+    persist_write_int(LONGEST_STREAK_KEY, longest_streak);
+    persist_write_int(DRINKING_SINCE_KEY, (int)drinking_since);
 }
 
 static void window_load(Window *window) {
@@ -383,6 +424,12 @@ static void init(void) {
     window_set_window_handlers(settings_menu_window, (WindowHandlers) {
         .load = settings_menu_window_load,
         .unload = settings_menu_window_unload,
+    });
+    
+    profile_menu_window = window_create();
+    window_set_window_handlers(profile_menu_window, (WindowHandlers) {
+        .load = profile_menu_window_load,
+        .unload = profile_menu_window_unload,
     });
     
     goal_menu_window = window_create();
@@ -496,6 +543,13 @@ static void settings_menu_draw_row_callback(GContext* ctx, const Layer *cell_lay
 
 static void settings_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
     switch (cell_index->section) {
+        case 0:
+            switch (cell_index->row) {
+                case 0:
+                    profile_menu_show();
+                    break;
+            }
+            break;
         case 1:
             switch (cell_index->row) {
                 case 0:
@@ -542,6 +596,118 @@ static void settings_menu_window_load(Window *window) {
 
 static void settings_menu_window_unload(Window *window) {
     menu_layer_destroy(settings_menu_layer);
+}
+// End settings menu stuff
+
+
+
+// Profile menu stuff
+static void profile_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
+    switch (section_index) {
+        case 0:
+            menu_cell_basic_header_draw(ctx, cell_layer, "Your Profile");
+            break;
+        case 1:
+            menu_cell_basic_header_draw(ctx, cell_layer, "Actions");
+            break;
+    }
+}
+
+static uint16_t profile_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
+    return 2;
+}
+
+static uint16_t profile_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    switch (section_index) {
+        case 0:
+            return 3;
+            
+        case 1:
+            return 1;
+            
+        default:
+            return 0;
+    }
+}
+
+static int16_t profile_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    return MENU_CELL_BASIC_HEADER_HEIGHT;
+}
+
+static void profile_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+    char buffer[20];
+    // Determine which section we're going to draw in
+    switch (cell_index->section) {
+        case 0:
+            // Use the row to specify which item we'll draw
+            switch (cell_index->row) {
+                case 0:
+                    snprintf(buffer, sizeof(buffer), "%u Gallons", (int)(total_consumed/(OZ_IN_GAL*get_goal_scale())));
+                    menu_cell_basic_draw(ctx, cell_layer, "Total Consumed", buffer, NULL);
+                    break;
+                case 1:
+                    snprintf(buffer, sizeof(buffer), "%u Days", longest_streak);
+                    menu_cell_basic_draw(ctx, cell_layer, "Longest Streak", buffer, NULL);
+                    break;
+                case 2:
+                    strftime(buffer, 20, "%b %e, %Y", localtime(&drinking_since));
+                    menu_cell_basic_draw(ctx, cell_layer, "Drinking Since", buffer, NULL);
+                    break;
+            }
+            break;
+            
+        case 1:
+            switch (cell_index->row) {
+                case 0:
+                    menu_cell_basic_draw(ctx, cell_layer, "Reset Profile", "Can't be undone!", NULL);
+                    break;
+            }
+            break;
+    }
+}
+
+static void profile_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+    switch (cell_index->section) {
+        case 1:
+            switch (cell_index->row) {
+                case 0:
+                    reset_profile();
+                    break;
+            }
+            break;
+    }
+}
+
+static void profile_menu_show() {
+    window_stack_push(profile_menu_window, true);
+}
+
+static void profile_menu_window_load(Window *window) {
+    Layer *menu_window_layer = window_get_root_layer(window);
+    GRect menu_bounds = layer_get_bounds(menu_window_layer);
+    
+    // Create the menu layer
+    profile_menu_layer = menu_layer_create(menu_bounds);
+    
+    // Bind the menu layer's click config provider to the window for interactivity
+    menu_layer_set_click_config_onto_window(profile_menu_layer, window);
+    
+    // Setup callbacks
+    menu_layer_set_callbacks(profile_menu_layer, NULL, (MenuLayerCallbacks){
+        .get_header_height = profile_menu_get_header_height_callback,
+        .draw_header = profile_menu_draw_header_callback,
+        .get_num_sections = profile_menu_get_num_sections_callback,
+        .get_num_rows = profile_menu_get_num_rows_callback,
+        .draw_row = profile_menu_draw_row_callback,
+        .select_click = profile_menu_select_callback,
+    });
+    
+    // Add it to the window for display
+    layer_add_child(menu_window_layer, menu_layer_get_layer(profile_menu_layer));
+}
+
+static void profile_menu_window_unload(Window *window) {
+    menu_layer_destroy(profile_menu_layer);
 }
 // End settings menu stuff
 

@@ -25,6 +25,7 @@ static void update_streak_display();
 static void increment_volume();
 static void decrement_volume();
 static void update_streak_count();
+static void reset_profile();
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context);
 static void up_click_handler(ClickRecognizerRef recognizer, void *context);
@@ -52,6 +53,18 @@ static void settings_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell
 static void settings_menu_show();
 static void settings_menu_window_load(Window *window);
 static void settings_menu_window_unload(Window *window);
+
+static Window *profile_menu_window;
+static MenuLayer *profile_menu_layer;
+static void profile_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data);
+static uint16_t profile_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data);
+static uint16_t profile_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data);
+static int16_t profile_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data);
+static void profile_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data);
+static void profile_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data);
+static void profile_menu_show();
+static void profile_menu_window_load(Window *window);
+static void profile_menu_window_unload(Window *window);
 
 static Window *goal_menu_window;
 static MenuLayer *goal_menu_layer;
