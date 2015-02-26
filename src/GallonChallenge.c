@@ -60,6 +60,35 @@ static uint32_t total_consumed;
 static uint16_t longest_streak;
 static time_t drinking_since;
 
+
+static uint16_t half_gallon_height(float vol) {
+    return -4.044923*10e-7*vol*vol*vol*vol + 2.648887*10e-5*vol*vol*vol - 2.999254*10e-4*vol*vol - 1.267036*vol + 92.27357;
+}
+
+static uint16_t gallon_height(float vol) {
+    return -1.148968*10e-8*vol*vol*vol*vol - 3.903847*10e-7*vol*vol*vol + 2.392628*10e-4*vol*vol - 0.6883706*vol + 90.78948;
+}
+
+static uint16_t container_height(float vol) {
+    if (vol == 0) {
+        return 93;
+    }
+    
+    if (vol >= OZ_IN_GAL * get_goal_scale()) {
+        return 0;
+    }
+    
+    switch (goal) {
+        case HALF_GALLON:
+            return half_gallon_height(vol);
+            break;
+            
+        default:
+            return gallon_height(vol);
+            break;
+    }
+}
+
 static const char* unit_to_string(Unit u) {
     switch (u) {
         case OUNCE:       return "Ounces";
@@ -183,7 +212,8 @@ static void update_volume_display() {
     snprintf(body_text, sizeof(body_text), "%u/%u %s", numerator, denominator, unit_to_string(unit));
     text_layer_set_text(text_layer, body_text);
     
-    layer_set_frame(text_layer_get_layer(white_layer), GRect(0, 37, 124, (1 - (float)current_oz / (float)OZ_IN_GAL / get_goal_scale()) * 93));
+    uint16_t height = container_height(current_oz);
+    layer_set_frame(text_layer_get_layer(white_layer), GRect(0, 37, 124, height));
     
     // Only show the star if the goal is met
     bool is_star_visible = !layer_get_hidden(bitmap_layer_get_layer(star_layer));
