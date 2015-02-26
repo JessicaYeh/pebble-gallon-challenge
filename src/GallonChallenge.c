@@ -467,6 +467,7 @@ static void deinit(void) {
     
     window_destroy(window);
     window_destroy(settings_menu_window);
+    window_destroy(profile_menu_window);
     window_destroy(goal_menu_window);
     window_destroy(unit_menu_window);
     window_destroy(eod_menu_window);
