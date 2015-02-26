@@ -673,7 +673,7 @@ static void profile_menu_draw_row_callback(GContext* ctx, const Layer *cell_laye
             // Use the row to specify which item we'll draw
             switch (cell_index->row) {
                 case 0:
-                    snprintf(buffer, sizeof(buffer), "%u.%01u Gallons", (int)(total_consumed/(OZ_IN_GAL*get_goal_scale())), (int)((total_consumed/(OZ_IN_GAL*get_goal_scale()))*10)%10);
+                    snprintf(buffer, sizeof(buffer), "%u.%01u Gallons", (int)((float)total_consumed/OZ_IN_GAL), (int)(((float)total_consumed/OZ_IN_GAL)*10)%10);
                     menu_cell_basic_draw(ctx, cell_layer, "Total Consumed", buffer, NULL);
                     break;
                 case 1:
