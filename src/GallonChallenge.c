@@ -673,11 +673,19 @@ static void profile_menu_draw_row_callback(GContext* ctx, const Layer *cell_laye
             // Use the row to specify which item we'll draw
             switch (cell_index->row) {
                 case 0:
-                    snprintf(buffer, sizeof(buffer), "%u.%01u Gallons", (int)((float)total_consumed/OZ_IN_GAL), (int)(((float)total_consumed/OZ_IN_GAL)*10)%10);
+                    if (total_consumed == OZ_IN_GAL) {
+                        snprintf(buffer, sizeof(buffer), "1.0 Gallon");
+                    } else {
+                        snprintf(buffer, sizeof(buffer), "%u.%01u Gallons", (int)(double)total_consumed/OZ_IN_GAL, (int)((double)total_consumed/OZ_IN_GAL*10)%10);
+                    }
                     menu_cell_basic_draw(ctx, cell_layer, "Total Consumed", buffer, NULL);
                     break;
                 case 1:
-                    snprintf(buffer, sizeof(buffer), "%u Days", longest_streak);
+                    if (longest_streak == 1) {
+                        snprintf(buffer, sizeof(buffer), "1 Day");
+                    } else {
+                        snprintf(buffer, sizeof(buffer), "%u Days", longest_streak);
+                    }
                     menu_cell_basic_draw(ctx, cell_layer, "Longest Streak", buffer, NULL);
                     break;
                 case 2:
