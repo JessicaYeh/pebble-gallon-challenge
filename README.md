@@ -11,10 +11,10 @@ You can customize your drinking goal to be either a half gallon or whole gallon 
 
 ## Screenshots
 <img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-half-gallon.png" height="320px">
-<img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-filled-half-gallon.png" height="320px">
 <img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-gallon.png" height="320px">
-<img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-filled-gallon.png" height="320px">
 <img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-profile.png" height="320px">
+<img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-filled-half-gallon.png" height="320px">
+<img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-filled-gallon.png" height="320px">
 <img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-settings.png" height="320px">
 
 ## Download
