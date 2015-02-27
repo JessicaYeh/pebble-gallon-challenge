@@ -16,6 +16,7 @@ static uint16_t container_height(float vol);
 static const char* unit_to_string(Unit u);
 static const char* eod_to_string(uint16_t hour);
 static bool are_dates_equal(time_t date1, time_t date2);
+static time_t now();
 static time_t get_todays_date();
 static time_t get_yesterdays_date();
 static void reset_current_date_and_volume_if_needed();
