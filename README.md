@@ -10,17 +10,12 @@ With the Gallon Challenge watchapp for Pebble, you can help yourself drink more 
 You can customize your drinking goal to be either a half gallon or whole gallon of water each day. The unit that you drink in can be customized to either ounces, cups, pints, or quarts. You can change the hour that your day starts at in case you have an irregular schedule.
 
 ## Screenshots
-![Image](https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-half-gallon.png)
-
-![Image](https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-filled-half-gallon.png)
-
-![Image](https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-gallon.png)
-
-![Image](https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-filled-gallon.png)
-
-![Image](https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-profile.png)
-
-![Image](https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-settings.png)
+<img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-half-gallon.png" height="320px">
+<img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-filled-half-gallon.png" height="320px">
+<img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-gallon.png" height="320px">
+<img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-filled-gallon.png" height="320px">
+<img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-profile.png" height="320px">
+<img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-settings.png" height="320px">
 
 ## Download
 This app is currently still in development! Please check back soon for a download link.
