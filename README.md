@@ -7,6 +7,8 @@ With the Gallon Challenge watchapp for Pebble, you can help yourself drink more 
 
 You can customize your drinking goal to be either a half gallon or whole gallon of water each day. The unit that you drink in can be customized to either ounces, cups, pints, or quarts. You can change the hour that your day starts at in case you have an irregular schedule.
 
+## Screenshots
+
 ## Download
 This app is currently still in development! Please check back soon for a download link.
 
@@ -14,3 +16,5 @@ This app is currently still in development! Please check back soon for a downloa
 <a href="http://thenounproject.com/term/milk/1701/">Gallon Icon</a> - Created by Jeff Seevers from the Noun Project
 
 <a href="http://thenounproject.com/term/milk/82802/">Half Gallon Icon</a> - Created by Blaise Sewell from the Noun Project
+
+<a href="http://commons.wikimedia.org/wiki/File:Water_drop,_single.jpg">Water Drop</a> - Created by gcardinal from Wikimedia Commons
