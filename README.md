@@ -18,7 +18,7 @@ You can customize your drinking goal to be either a half gallon or whole gallon 
 <img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-settings.png" height="320px">
 
 ## Download
-Visit pebble://appstore/54f15dacbc88dfd03d000028 from your phone or search for "Gallon Challenge" from the appstore.
+Visit <a href="pebble://appstore/54f15dacbc88dfd03d000028">pebble://appstore/54f15dacbc88dfd03d000028</a> from your phone or search for "Gallon Challenge" from the appstore.
 
 ## Attributions
 <a href="http://thenounproject.com/term/milk/1701/">Gallon Icon</a> - Created by Jeff Seevers from the Noun Project
