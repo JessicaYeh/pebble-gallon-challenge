@@ -146,26 +146,26 @@ static time_t get_yesterdays_date() {
 }
 
 static void reset_current_date_and_volume_if_needed() {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Reset current date and time if needed");
+    //APP_LOG(APP_LOG_LEVEL_DEBUG, "Reset current date and time if needed");
     time_t today = get_todays_date();
     time_t yesterday = get_yesterdays_date();
-    char buffer[50];
-    strftime(buffer, 50, "Today: %x %X %p", localtime(&today));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
-    strftime(buffer, 50, "Yesterday: %x %X %p", localtime(&yesterday));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
-    strftime(buffer, 50, "Last streak date: %x %X %p", localtime(&last_streak_date));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
-    strftime(buffer, 50, "Current date: %x %X %p", localtime(&current_date));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
+    //char buffer[50];
+    //strftime(buffer, 50, "Today: %x %X %p", localtime(&today));
+    //APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
+    //strftime(buffer, 50, "Yesterday: %x %X %p", localtime(&yesterday));
+    //APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
+    //strftime(buffer, 50, "Last streak date: %x %X %p", localtime(&last_streak_date));
+    //APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
+    //strftime(buffer, 50, "Current date: %x %X %p", localtime(&current_date));
+    //APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
     if (!are_dates_equal(current_date, today)) {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Resetting current date and volume");
+        //APP_LOG(APP_LOG_LEVEL_DEBUG, "Resetting current date and volume");
         current_date = today;
         current_oz = 0;
         
         // Reset the streak if needed
         if (!are_dates_equal(last_streak_date, yesterday)) {
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "Resetting streak");
+            //APP_LOG(APP_LOG_LEVEL_DEBUG, "Resetting streak");
             streak_count = 0;
         }
     }
@@ -368,28 +368,28 @@ static void click_config_provider(void *context) {
 
 static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed) {
     if (tick_time->tm_hour == 0) {
-        char buffer[50];
-        strftime(buffer, 50, "Last streak date: %x %X %p", localtime(&last_streak_date));
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
-        strftime(buffer, 50, "Current date: %x %X %p", localtime(&current_date));
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
+        //char buffer[50];
+        //strftime(buffer, 50, "Last streak date: %x %X %p", localtime(&last_streak_date));
+        //APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
+        //strftime(buffer, 50, "Current date: %x %X %p", localtime(&current_date));
+        //APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
         reset_current_date_and_volume_if_needed();
     }
 }
 
 static void load_persistent_storage() {
-    char buffer[50];
+    //char buffer[50];
     current_oz = persist_exists(CURRENT_OZ_KEY) ? persist_read_int(CURRENT_OZ_KEY) : 0;
     end_of_day = persist_exists(EOD_KEY) ? persist_read_int(EOD_KEY) : 0;
     goal = persist_exists(GOAL_KEY) ? persist_read_int(GOAL_KEY) : GALLON;
     unit = persist_exists(UNIT_KEY) ? persist_read_int(UNIT_KEY) : CUP;
     streak_count = persist_exists(STREAK_COUNT_KEY) ? persist_read_int(STREAK_COUNT_KEY) : 0;
     last_streak_date = persist_exists(LAST_STREAK_DATE_KEY) ? persist_read_int(LAST_STREAK_DATE_KEY) : get_yesterdays_date();
-    strftime(buffer, 50, "Last streak date: %x %X %p", localtime(&last_streak_date));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
+    //strftime(buffer, 50, "Last streak date: %x %X %p", localtime(&last_streak_date));
+    //APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
     current_date = persist_exists(CURRENT_DATE_KEY) ? persist_read_int(CURRENT_DATE_KEY) : get_todays_date();
-    strftime(buffer, 50, "Current date: %x %X %p", localtime(&current_date));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
+    //strftime(buffer, 50, "Current date: %x %X %p", localtime(&current_date));
+    //APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
     total_consumed = persist_exists(TOTAL_CONSUMED_KEY) ? persist_read_int(TOTAL_CONSUMED_KEY) : 0;
     longest_streak = persist_exists(LONGEST_STREAK_KEY) ? persist_read_int(LONGEST_STREAK_KEY) : 0;
     drinking_since = persist_exists(DRINKING_SINCE_KEY) ? persist_read_int(DRINKING_SINCE_KEY) : now();
