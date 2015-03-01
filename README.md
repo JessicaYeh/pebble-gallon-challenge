@@ -25,4 +25,6 @@ Visit <a href="pebble://appstore/54f15dacbc88dfd03d000028">pebble://appstore/54f
 
 <a href="http://thenounproject.com/term/milk/82802/">Half Gallon Icon</a> - Created by Blaise Sewell from the Noun Project
 
-<a href="http://commons.wikimedia.org/wiki/File:Water_drop,_single.jpg">Water Drop</a> - Created by gcardinal from Wikimedia Commons
+<a href="http://thenounproject.com/term/water/26130/">Water Drop Icon</a> - Created by Megan Mitchell from the Noun Project
+
+<a href="http://commons.wikimedia.org/wiki/File:Water_drop,_single.jpg">Water Drop Background</a> - Created by gcardinal from Wikimedia Commons
