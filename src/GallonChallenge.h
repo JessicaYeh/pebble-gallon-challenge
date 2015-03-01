@@ -15,6 +15,7 @@ static uint16_t gallon_height(float vol);
 static uint16_t container_height(float vol);
 static const char* unit_to_string(Unit u);
 static const char* eod_to_string(uint16_t hour);
+static const char* reminder_to_string(uint16_t hour);
 static bool are_dates_equal(time_t date1, time_t date2);
 static time_t now();
 static time_t get_todays_date();
@@ -37,6 +38,7 @@ static void down_click_handler(ClickRecognizerRef recognizer, void *context);
 static void click_config_provider(void *context);
 
 static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed);
+static void wakeup_handler(WakeupId id, int32_t reason);
 
 static void load_persistent_storage();
 static void save_persistent_storage();
@@ -105,5 +107,17 @@ static void eod_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_inde
 static void eod_menu_show();
 static void eod_menu_window_load(Window *window);
 static void eod_menu_window_unload(Window *window);
+
+static Window *reminder_menu_window;
+static MenuLayer *reminder_menu_layer;
+static void reminder_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data);
+static uint16_t reminder_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data);
+static uint16_t reminder_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data);
+static int16_t reminder_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data);
+static void reminder_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data);
+static void reminder_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data);
+static void reminder_menu_show();
+static void reminder_menu_window_load(Window *window);
+static void reminder_menu_window_unload(Window *window);
 
 #endif

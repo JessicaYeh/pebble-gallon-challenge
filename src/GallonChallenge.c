@@ -19,6 +19,11 @@
 #define TOTAL_CONSUMED_KEY 1007
 #define LONGEST_STREAK_KEY 1008
 #define DRINKING_SINCE_KEY 1009
+// Key for saving the number of hours for inactivity reminder
+#define REMINDER_KEY 1010
+
+#define WAKEUP_REASON 2000
+#define WAKEUP_ID_KEY 2001
 
 #define OZ_IN_CUP 8
 #define OZ_IN_PINT 16
@@ -31,34 +36,19 @@
 
 static Window *window;
 
-static GBitmap *action_icon_plus;
-static GBitmap *action_icon_settings;
-static GBitmap *action_icon_minus;
-static GBitmap *gallon_filled_image;
-static GBitmap *gallon_image;
-static GBitmap *star;
+static GBitmap *action_icon_plus, *action_icon_settings, *action_icon_minus, *gallon_filled_image, *gallon_image, *star;
 
 static ActionBarLayer *action_bar;
+static TextLayer *streak_text_layer, *text_layer, *white_layer;
+static BitmapLayer *gallon_filled_layer, *gallon_layer, *star_layer;
 
-static TextLayer *streak_text_layer;
-static TextLayer *text_layer;
+static Unit goal, unit;
 
-static TextLayer *white_layer;
-static BitmapLayer *gallon_filled_layer;
-static BitmapLayer *gallon_layer;
-static BitmapLayer *star_layer;
-
-static Unit goal;
-static Unit unit;
-static time_t current_date;
-static uint16_t current_oz;
-static time_t last_streak_date;
-static uint16_t streak_count;
-static uint16_t end_of_day;
-
+static time_t current_date, last_streak_date, drinking_since;
+static uint16_t current_oz, streak_count, end_of_day, inactivity_reminder_hours, longest_streak;
 static uint32_t total_consumed;
-static uint16_t longest_streak;
-static time_t drinking_since;
+
+static WakeupId s_wakeup_id;
 
 
 static uint16_t half_gallon_height(float vol) {
@@ -111,6 +101,21 @@ static const char* eod_to_string(uint16_t hour) {
         case 15: return "3:00 PM";
         case 18: return "6:00 PM";
         case 21: return "9:00 PM";
+        default: return "";
+    }
+}
+
+static const char* reminder_to_string(uint16_t hour) {
+    switch (hour) {
+        case 0:  return "Off";
+        case 1:  return "1 Hour";
+        case 2:  return "2 Hours";
+        case 3:  return "3 Hours";
+        case 4:  return "4 Hours";
+        case 5:  return "5 Hours";
+        case 6:  return "6 Hours";
+        case 7:  return "7 Hours";
+        case 8:  return "8 Hours";
         default: return "";
     }
 }
@@ -377,10 +382,17 @@ static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed) {
     }
 }
 
+static void wakeup_handler(WakeupId id, int32_t reason) {
+    // A wakeup event has occurred
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "wakeup_handler");
+    vibes_short_pulse();
+}
+
 static void load_persistent_storage() {
     //char buffer[50];
     current_oz = persist_exists(CURRENT_OZ_KEY) ? persist_read_int(CURRENT_OZ_KEY) : 0;
     end_of_day = persist_exists(EOD_KEY) ? persist_read_int(EOD_KEY) : 0;
+    inactivity_reminder_hours = persist_exists(REMINDER_KEY) ? persist_read_int(REMINDER_KEY) : 0;
     goal = persist_exists(GOAL_KEY) ? persist_read_int(GOAL_KEY) : GALLON;
     unit = persist_exists(UNIT_KEY) ? persist_read_int(UNIT_KEY) : CUP;
     streak_count = persist_exists(STREAK_COUNT_KEY) ? persist_read_int(STREAK_COUNT_KEY) : 0;
@@ -398,6 +410,7 @@ static void load_persistent_storage() {
 static void save_persistent_storage() {
     persist_write_int(CURRENT_OZ_KEY, current_oz);
     persist_write_int(EOD_KEY, end_of_day);
+    persist_write_int(REMINDER_KEY, inactivity_reminder_hours);
     persist_write_int(GOAL_KEY, goal);
     persist_write_int(UNIT_KEY, unit);
     persist_write_int(STREAK_COUNT_KEY, streak_count);
@@ -507,9 +520,59 @@ static void init(void) {
         .unload = eod_menu_window_unload,
     });
     
+    reminder_menu_window = window_create();
+    window_set_window_handlers(reminder_menu_window, (WindowHandlers) {
+        .load = reminder_menu_window_load,
+        .unload = reminder_menu_window_unload,
+    });
+    
     window_stack_push(window, true);
     
     tick_timer_service_subscribe(HOUR_UNIT, handle_hour_tick);
+    wakeup_service_subscribe(wakeup_handler);
+
+    bool wakeup_scheduled = false;
+
+    // Check if we have already scheduled a wakeup event
+    // so we can transition to the countdown window
+    if (persist_exists(WAKEUP_ID_KEY)) {
+        s_wakeup_id = persist_read_int(WAKEUP_ID_KEY);
+        // query if event is still valid, otherwise delete
+        if (wakeup_query(s_wakeup_id, NULL)) {
+            wakeup_scheduled = true;
+        } else {
+            persist_delete(WAKEUP_ID_KEY);
+            s_wakeup_id = 0;
+        }
+    }
+
+    // Check to see if we were launched by a wakeup event
+    if (launch_reason() == APP_LAUNCH_WAKEUP) {
+        // If woken by wakeup event, get the event display "tea is ready"
+        WakeupId id = 0;
+        int32_t reason = 0;
+        if (wakeup_get_launch_event(&id, &reason)) {
+            wakeup_handler(id, reason);
+        }
+    } else if (!wakeup_scheduled) {
+        time_t future_time = time(NULL) + 30;
+        s_wakeup_id = wakeup_schedule(future_time, WAKEUP_REASON, true);
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Scheduled wakeup");
+
+        // time_t future_time = time(NULL);
+        // while (!s_wakeup_id || s_wakeup_id == E_RANGE) {
+        //     // Current time + 30 seconds
+        //     future_time = future_time + 30;
+
+        //     // Schedule wakeup event and keep the WakeupId in case it needs to be queried
+        //     s_wakeup_id = wakeup_schedule(future_time, WAKEUP_REASON, true);
+        // }
+    } else {
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Nothing");
+    }
+
+    // Persist to allow wakeup query after the app is closed.
+    persist_write_int(WAKEUP_ID_KEY, s_wakeup_id);
 }
 
 static void deinit(void) {
@@ -528,6 +591,7 @@ static void deinit(void) {
     window_destroy(goal_menu_window);
     window_destroy(unit_menu_window);
     window_destroy(eod_menu_window);
+    window_destroy(reminder_menu_window);
 }
 
 int main(void) {
@@ -559,7 +623,7 @@ static uint16_t settings_menu_get_num_rows_callback(MenuLayer *menu_layer, uint1
             return 1;
             
         case 1:
-            return 3;
+            return 4;
             
         default:
             return 0;
@@ -594,6 +658,9 @@ static void settings_menu_draw_row_callback(GContext* ctx, const Layer *cell_lay
                 case 2:
                     menu_cell_basic_draw(ctx, cell_layer, "End of Day", eod_to_string(end_of_day), NULL);
                     break;
+                case 3:
+                    menu_cell_basic_draw(ctx, cell_layer, "Drink Reminders", reminder_to_string(inactivity_reminder_hours), NULL);
+                    break;
             }
             break;
     }
@@ -618,6 +685,9 @@ static void settings_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell
                     break;
                 case 2:
                     eod_menu_show();
+                    break;
+                case 3:
+                    reminder_menu_show();
                     break;
             }
             break;
@@ -983,3 +1053,67 @@ static void eod_menu_window_unload(Window *window) {
     menu_layer_destroy(eod_menu_layer);
 }
 // End end of day menu stuff
+
+
+
+// Reminder menu stuff
+static void reminder_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
+    menu_cell_basic_header_draw(ctx, cell_layer, "Set Drink Reminders");
+}
+
+static uint16_t reminder_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
+    return 1;
+}
+
+static uint16_t reminder_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    return 9;
+}
+
+static int16_t reminder_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    return MENU_CELL_BASIC_HEADER_HEIGHT;
+}
+
+static void reminder_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+    menu_cell_basic_draw(ctx, cell_layer, reminder_to_string(cell_index->row), NULL, NULL);
+}
+
+static void reminder_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+    inactivity_reminder_hours = cell_index->row;
+    window_stack_pop(true);
+}
+
+static void reminder_menu_show() {
+    window_stack_push(reminder_menu_window, true);
+    
+    // Sets the selected hour in the menu
+    menu_layer_set_selected_index(reminder_menu_layer, (MenuIndex) { .row = inactivity_reminder_hours, .section = 0 }, MenuRowAlignCenter, false);
+}
+
+static void reminder_menu_window_load(Window *window) {
+    Layer *menu_window_layer = window_get_root_layer(window);
+    GRect menu_bounds = layer_get_bounds(menu_window_layer);
+    
+    // Create the menu layer
+    reminder_menu_layer = menu_layer_create(menu_bounds);
+    
+    // Bind the menu layer's click config provider to the window for interactivity
+    menu_layer_set_click_config_onto_window(reminder_menu_layer, window);
+    
+    // Setup callbacks
+    menu_layer_set_callbacks(reminder_menu_layer, NULL, (MenuLayerCallbacks){
+        .get_header_height = reminder_menu_get_header_height_callback,
+        .draw_header = reminder_menu_draw_header_callback,
+        .get_num_sections = reminder_menu_get_num_sections_callback,
+        .get_num_rows = reminder_menu_get_num_rows_callback,
+        .draw_row = reminder_menu_draw_row_callback,
+        .select_click = reminder_menu_select_callback,
+    });
+    
+    // Add it to the window for display
+    layer_add_child(menu_window_layer, menu_layer_get_layer(reminder_menu_layer));
+}
+
+static void reminder_menu_window_unload(Window *window) {
+    menu_layer_destroy(reminder_menu_layer);
+}
+// End reminder menu stuff
