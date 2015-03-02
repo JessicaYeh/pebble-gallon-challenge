@@ -449,7 +449,7 @@ static void schedule_wakeup_if_needed() {
         }
     } else if (!wakeup_scheduled) {
         // Repeatedly try to schedule the wakeup in case of conflicting wakeup times
-        time_t future_time = time(NULL) - 60 + inactivity_reminder_hours * 10; // TODO: change 10 to 3600
+        time_t future_time = time(NULL) - 60 + inactivity_reminder_hours * 3600;
         while (!s_wakeup_id || s_wakeup_id == E_RANGE) {
             // Add a minute to wakeup timer
             future_time = future_time + 60;
