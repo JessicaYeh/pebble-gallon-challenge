@@ -32,6 +32,7 @@ static void decrement_volume();
 static void update_streak_count();
 static void reset_profile();
 
+static void cancel_app_exit_and_remove_reminder_text();
 static void select_click_handler(ClickRecognizerRef recognizer, void *context);
 static void up_click_handler(ClickRecognizerRef recognizer, void *context);
 static void down_click_handler(ClickRecognizerRef recognizer, void *context);
@@ -39,6 +40,8 @@ static void click_config_provider(void *context);
 
 static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed);
 static void wakeup_handler(WakeupId id, int32_t reason);
+static void schedule_wakeup_if_needed();
+static void app_exit_callback();
 
 static void load_persistent_storage();
 static void save_persistent_storage();

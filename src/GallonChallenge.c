@@ -39,7 +39,7 @@ static Window *window;
 static GBitmap *action_icon_plus, *action_icon_settings, *action_icon_minus, *gallon_filled_image, *gallon_image, *star;
 
 static ActionBarLayer *action_bar;
-static TextLayer *streak_text_layer, *text_layer, *white_layer;
+static TextLayer *streak_text_layer, *text_layer, *white_layer, *reminder_text_layer;
 static BitmapLayer *gallon_filled_layer, *gallon_layer, *star_layer;
 
 static Unit goal, unit;
@@ -49,6 +49,10 @@ static uint16_t current_oz, streak_count, end_of_day, inactivity_reminder_hours,
 static uint32_t total_consumed;
 
 static WakeupId s_wakeup_id;
+
+static AppTimer *quit_timer;
+
+static bool launched = false;
 
 
 static uint16_t half_gallon_height(float vol) {
@@ -237,6 +241,7 @@ static void update_volume_display() {
     uint16_t height = container_height(current_oz);
     layer_set_frame(text_layer_get_layer(white_layer), GRect(0, 37, 124, height));
     
+
     // Only show the star if the goal is met
     bool is_star_visible = !layer_get_hidden(bitmap_layer_get_layer(star_layer));
     if (numerator == denominator && !is_star_visible) {
@@ -244,6 +249,14 @@ static void update_volume_display() {
     } else if (numerator != denominator && is_star_visible) {
         layer_set_hidden(bitmap_layer_get_layer(star_layer), true);
     }
+
+    // Cancel the reminder timer if one is present
+    if (wakeup_query(s_wakeup_id, NULL)) {
+        wakeup_cancel(s_wakeup_id);
+    }
+
+    // Restart the reminder timer if the goal isn't met
+    schedule_wakeup_if_needed();
 }
 
 static void update_streak_display() {
@@ -351,15 +364,25 @@ static void reset_profile() {
     layer_mark_dirty(menu_layer_get_layer(profile_menu_layer));
 }
 
+static void cancel_app_exit_and_remove_reminder_text() {
+    if (!layer_get_hidden(text_layer_get_layer(reminder_text_layer))) {
+        app_timer_cancel(quit_timer);
+        layer_set_hidden(text_layer_get_layer(reminder_text_layer), true);
+    }
+}
+
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
+    cancel_app_exit_and_remove_reminder_text();
     settings_menu_show();
 }
 
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
+    cancel_app_exit_and_remove_reminder_text();
     increment_volume();
 }
 
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
+    cancel_app_exit_and_remove_reminder_text();
     decrement_volume();
 }
 
@@ -383,9 +406,68 @@ static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed) {
 }
 
 static void wakeup_handler(WakeupId id, int32_t reason) {
-    // A wakeup event has occurred
     APP_LOG(APP_LOG_LEVEL_DEBUG, "wakeup_handler");
+    layer_set_hidden(text_layer_get_layer(reminder_text_layer), false);
     vibes_short_pulse();
+    schedule_wakeup_if_needed();
+}
+
+static void schedule_wakeup_if_needed() {
+    // Reminders are off, don't schedule a reminder
+    if (inactivity_reminder_hours == 0) {
+        return;
+    }
+
+    // Goal is met, so don't schedule a reminder
+    if (calc_current_volume() == get_unit_in_gal() * get_goal_scale()) {
+        return;
+    }
+
+    bool wakeup_scheduled = false;
+
+    // Check if we have already scheduled a wakeup event
+    if (persist_exists(WAKEUP_ID_KEY)) {
+        s_wakeup_id = persist_read_int(WAKEUP_ID_KEY);
+        // query if event is still valid, otherwise delete
+        if (wakeup_query(s_wakeup_id, NULL)) {
+            wakeup_scheduled = true;
+        } else {
+            persist_delete(WAKEUP_ID_KEY);
+            s_wakeup_id = 0;
+        }
+    }
+
+    // Check to see if we were launched by a wakeup event
+    if (launch_reason() == APP_LAUNCH_WAKEUP && !launched) {
+        launched = true;
+        WakeupId id = 0;
+        int32_t reason = 0;
+        if (wakeup_get_launch_event(&id, &reason)) {
+            wakeup_handler(id, reason);
+            // Auto exit the app after 2 minutes if it was awoken from a reminder
+            quit_timer = app_timer_register(120000, app_exit_callback, NULL);
+        }
+    } else if (!wakeup_scheduled) {
+        // Repeatedly try to schedule the wakeup in case of conflicting wakeup times
+        time_t future_time = time(NULL) - 60 + inactivity_reminder_hours * 10; // TODO: change 10 to 3600
+        while (!s_wakeup_id || s_wakeup_id == E_RANGE) {
+            // Add a minute to wakeup timer
+            future_time = future_time + 60;
+
+            // Schedule wakeup event and keep the WakeupId in case it needs to be queried
+            s_wakeup_id = wakeup_schedule(future_time, WAKEUP_REASON, true);
+        }
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Scheduled wakeup");
+    } else {
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Nothing");
+    }
+
+    // Persist to allow wakeup query after the app is closed.
+    persist_write_int(WAKEUP_ID_KEY, s_wakeup_id);
+}
+
+static void app_exit_callback() {
+    window_stack_pop_all(true);
 }
 
 static void load_persistent_storage() {
@@ -460,6 +542,14 @@ static void window_load(Window *window) {
     star_layer = bitmap_layer_create(GRect(48, 79, 28, 26));
     bitmap_layer_set_bitmap(star_layer, star);
     layer_add_child(window_layer, bitmap_layer_get_layer(star_layer));
+
+    reminder_text_layer = text_layer_create(GRect(0, 63, 124, 38));
+    text_layer_set_font(reminder_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+    text_layer_set_text_alignment(reminder_text_layer, GTextAlignmentCenter);
+    text_layer_set_background_color(reminder_text_layer, GColorWhite);
+    text_layer_set_text(reminder_text_layer, "Drink water!");
+    layer_add_child(window_layer, text_layer_get_layer(reminder_text_layer));
+    layer_set_hidden(text_layer_get_layer(reminder_text_layer), true);
     
     set_image_for_goal();
     reset_current_date_and_volume_if_needed();
@@ -469,6 +559,7 @@ static void window_unload(Window *window) {
     text_layer_destroy(text_layer);
     text_layer_destroy(streak_text_layer);
     text_layer_destroy(white_layer);
+    text_layer_destroy(reminder_text_layer);
     bitmap_layer_destroy(gallon_layer);
     bitmap_layer_destroy(gallon_filled_layer);
     bitmap_layer_destroy(star_layer);
@@ -530,49 +621,7 @@ static void init(void) {
     
     tick_timer_service_subscribe(HOUR_UNIT, handle_hour_tick);
     wakeup_service_subscribe(wakeup_handler);
-
-    bool wakeup_scheduled = false;
-
-    // Check if we have already scheduled a wakeup event
-    // so we can transition to the countdown window
-    if (persist_exists(WAKEUP_ID_KEY)) {
-        s_wakeup_id = persist_read_int(WAKEUP_ID_KEY);
-        // query if event is still valid, otherwise delete
-        if (wakeup_query(s_wakeup_id, NULL)) {
-            wakeup_scheduled = true;
-        } else {
-            persist_delete(WAKEUP_ID_KEY);
-            s_wakeup_id = 0;
-        }
-    }
-
-    // Check to see if we were launched by a wakeup event
-    if (launch_reason() == APP_LAUNCH_WAKEUP) {
-        // If woken by wakeup event, get the event display "tea is ready"
-        WakeupId id = 0;
-        int32_t reason = 0;
-        if (wakeup_get_launch_event(&id, &reason)) {
-            wakeup_handler(id, reason);
-        }
-    } else if (!wakeup_scheduled) {
-        time_t future_time = time(NULL) + 30;
-        s_wakeup_id = wakeup_schedule(future_time, WAKEUP_REASON, true);
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Scheduled wakeup");
-
-        // time_t future_time = time(NULL);
-        // while (!s_wakeup_id || s_wakeup_id == E_RANGE) {
-        //     // Current time + 30 seconds
-        //     future_time = future_time + 30;
-
-        //     // Schedule wakeup event and keep the WakeupId in case it needs to be queried
-        //     s_wakeup_id = wakeup_schedule(future_time, WAKEUP_REASON, true);
-        // }
-    } else {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Nothing");
-    }
-
-    // Persist to allow wakeup query after the app is closed.
-    persist_write_int(WAKEUP_ID_KEY, s_wakeup_id);
+    schedule_wakeup_if_needed();
 }
 
 static void deinit(void) {
@@ -1079,6 +1128,13 @@ static void reminder_menu_draw_row_callback(GContext* ctx, const Layer *cell_lay
 
 static void reminder_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
     inactivity_reminder_hours = cell_index->row;
+
+    // Reset the reminder timer
+    if (wakeup_query(s_wakeup_id, NULL)) {
+        wakeup_cancel(s_wakeup_id);
+    }
+    schedule_wakeup_if_needed();
+
     window_stack_pop(true);
 }
 
