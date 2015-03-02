@@ -40,6 +40,7 @@ static void click_config_provider(void *context);
 
 static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed);
 static void wakeup_handler(WakeupId id, int32_t reason);
+static void reset_wakeup();
 static void schedule_wakeup_if_needed();
 static void app_exit_callback();
 
