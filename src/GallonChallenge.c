@@ -50,7 +50,7 @@ static uint32_t total_consumed;
 
 static WakeupId s_wakeup_id;
 
-static AppTimer *quit_timer;
+static AppTimer *quit_timer, *reset_reminder_timer;
 
 static bool launched = false;
 
@@ -286,7 +286,10 @@ static void increment_volume() {
     
     update_streak_count();
     update_volume_display();
-    reset_wakeup();
+
+    // In case of repeating clicks, don't immediately reset the reminder
+    app_timer_cancel(reset_reminder_timer);
+    reset_reminder_timer = app_timer_register(500, reset_wakeup, NULL);
 }
 
 // Decrease the current volume by one unit
@@ -318,7 +321,10 @@ static void decrement_volume() {
     
     update_streak_count();
     update_volume_display();
-    reset_wakeup();
+
+    // In case of repeating clicks, don't immediately reset the reminder
+    app_timer_cancel(reset_reminder_timer);
+    reset_reminder_timer = app_timer_register(500, reset_wakeup, NULL);
 }
 
 static void update_streak_count() {
@@ -410,7 +416,7 @@ static void wakeup_handler(WakeupId id, int32_t reason) {
 }
 
 static void reset_wakeup() {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "reset_wakeup");
+    //APP_LOG(APP_LOG_LEVEL_DEBUG, "reset_wakeup");
     // Cancel the reminder timer if one is present
     if (wakeup_query(s_wakeup_id, NULL)) {
         wakeup_cancel(s_wakeup_id);
