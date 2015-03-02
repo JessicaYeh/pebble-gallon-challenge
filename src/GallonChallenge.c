@@ -203,6 +203,9 @@ static bool reset_current_date_and_volume_if_needed() {
         // Reset the streak if needed
         if (!are_dates_equal(last_streak_date, yesterday)) {
             //APP_LOG(APP_LOG_LEVEL_DEBUG, "Resetting streak");
+            if (streak_count > longest_streak) {
+                longest_streak = streak_count;
+            }
             streak_count = 0;
         }
     }
@@ -368,18 +371,12 @@ static void update_streak_count() {
         if (!are_dates_equal(last_streak_date, today)) {
             last_streak_date = today;
             streak_count++;
-            if (streak_count > longest_streak) {
-                longest_streak = streak_count;
-            }
         }
     } else if (current_oz < goal_oz && are_dates_equal(last_streak_date, today)) {
         // If the last streak date is today's date, since the goal is now no longer
         // met, set the last streak date to the previous date and decrement the
         // streak count.
         last_streak_date = get_yesterdays_date();
-        if (streak_count == longest_streak) {
-            longest_streak--;
-        }
         streak_count--;
     }
     
@@ -388,7 +385,7 @@ static void update_streak_count() {
 
 static void reset_profile() {
     total_consumed = current_oz;
-    longest_streak = streak_count;
+    longest_streak = 0;
     drinking_since = now();
     layer_mark_dirty(menu_layer_get_layer(profile_menu_layer));
 }
@@ -949,6 +946,7 @@ static int16_t profile_menu_get_header_height_callback(MenuLayer *menu_layer, ui
 
 static void profile_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
     char buffer[20];
+    uint16_t streak;
     // Determine which section we're going to draw in
     switch (cell_index->section) {
         case 0:
@@ -963,10 +961,11 @@ static void profile_menu_draw_row_callback(GContext* ctx, const Layer *cell_laye
                     menu_cell_basic_draw(ctx, cell_layer, "Total Consumed", buffer, NULL);
                     break;
                 case 1:
-                    if (longest_streak == 1) {
+                    streak = (streak_count > longest_streak) ? streak_count : longest_streak;
+                    if (streak == 1) {
                         snprintf(buffer, sizeof(buffer), "1 Day");
                     } else {
-                        snprintf(buffer, sizeof(buffer), "%u Days", longest_streak);
+                        snprintf(buffer, sizeof(buffer), "%u Days", streak);
                     }
                     menu_cell_basic_draw(ctx, cell_layer, "Longest Streak", buffer, NULL);
                     break;
