@@ -402,6 +402,8 @@ static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed) {
 
 static void wakeup_handler(WakeupId id, int32_t reason) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "wakeup_handler");
+    persist_delete(WAKEUP_ID_KEY);
+    s_wakeup_id = 0;
     layer_set_hidden(text_layer_get_layer(reminder_text_layer), false);
     vibes_short_pulse();
     schedule_wakeup_if_needed();
@@ -412,6 +414,8 @@ static void reset_wakeup() {
     // Cancel the reminder timer if one is present
     if (wakeup_query(s_wakeup_id, NULL)) {
         wakeup_cancel(s_wakeup_id);
+        persist_delete(WAKEUP_ID_KEY);
+        s_wakeup_id = 0;
     }
 
     // Restart the reminder timer if the goal isn't met
@@ -440,6 +444,9 @@ static void schedule_wakeup_if_needed() {
         if (wakeup_query(s_wakeup_id, NULL)) {
             wakeup_scheduled = true;
             APP_LOG(APP_LOG_LEVEL_DEBUG, "Wakeup already scheduled");
+        } else {
+            persist_delete(WAKEUP_ID_KEY);
+            s_wakeup_id = 0;
         }
     }
 
@@ -454,19 +461,25 @@ static void schedule_wakeup_if_needed() {
             quit_timer = app_timer_register(120000, app_exit_callback, NULL);
         }
     } else if (!wakeup_scheduled) {
+        time_t future_time = time(NULL) + inactivity_reminder_hours * 60;
+
+        uint16_t attempts = 0;
         // Repeatedly try to schedule the wakeup in case of conflicting wakeup times
-        time_t future_time = time(NULL) - 60 + inactivity_reminder_hours * 3600;
         s_wakeup_id = 0;
-        while (!s_wakeup_id || s_wakeup_id == E_RANGE) {
-            // Add a minute to wakeup timer
-            future_time = future_time + 60;
+        while ((!s_wakeup_id || s_wakeup_id == E_RANGE || s_wakeup_id == E_INTERNAL) && attempts < 1000) {
+            // Add a minute to wakeup timer if the error was for time range
+            if (s_wakeup_id == E_RANGE) {
+                future_time = future_time + 60;
+            }
 
             // Schedule wakeup event and keep the WakeupId in case it needs to be queried
             s_wakeup_id = wakeup_schedule(future_time, WAKEUP_REASON, true);
-
-            // Persist to allow wakeup query after the app is closed.
-            persist_write_int(WAKEUP_ID_KEY, s_wakeup_id);
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "Wakeup id: %d", (int)s_wakeup_id);
+            attempts++;
         }
+
+        // Persist to allow wakeup query after the app is closed.
+        persist_write_int(WAKEUP_ID_KEY, s_wakeup_id);
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Scheduled wakeup");
     } else {
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Nothing");
