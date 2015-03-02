@@ -412,11 +412,16 @@ static void wakeup_handler(WakeupId id, int32_t reason) {
     s_wakeup_id = 0;
     layer_set_hidden(text_layer_get_layer(reminder_text_layer), false);
     vibes_short_pulse();
-    schedule_wakeup_if_needed();
+    if (launch_reason() == APP_LAUNCH_WAKEUP && !launched) {
+        launched = true;
+        app_timer_register(1000, schedule_wakeup_if_needed, NULL);
+    } else {
+        schedule_wakeup_if_needed();
+    }
 }
 
 static void reset_wakeup() {
-    //APP_LOG(APP_LOG_LEVEL_DEBUG, "reset_wakeup");
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "reset_wakeup");
     // Cancel the reminder timer if one is present
     if (wakeup_query(s_wakeup_id, NULL)) {
         wakeup_cancel(s_wakeup_id);
@@ -458,7 +463,6 @@ static void schedule_wakeup_if_needed() {
 
     // Check to see if we were launched by a wakeup event
     if (launch_reason() == APP_LAUNCH_WAKEUP && !launched) {
-        launched = true;
         WakeupId id = 0;
         int32_t reason = 0;
         if (wakeup_get_launch_event(&id, &reason)) {
@@ -467,12 +471,12 @@ static void schedule_wakeup_if_needed() {
             quit_timer = app_timer_register(120000, app_exit_callback, NULL);
         }
     } else if (!wakeup_scheduled) {
-        time_t future_time = time(NULL) + inactivity_reminder_hours * 60;
+        time_t future_time = time(NULL) + inactivity_reminder_hours * 3600;
 
         uint16_t attempts = 0;
         // Repeatedly try to schedule the wakeup in case of conflicting wakeup times
         s_wakeup_id = 0;
-        while ((!s_wakeup_id || s_wakeup_id == E_RANGE || s_wakeup_id == E_INTERNAL) && attempts < 1000) {
+        while ((!s_wakeup_id || s_wakeup_id == E_RANGE || s_wakeup_id == E_INTERNAL) && attempts < 100) {
             // Add a minute to wakeup timer if the error was for time range
             if (s_wakeup_id == E_RANGE) {
                 future_time = future_time + 60;
