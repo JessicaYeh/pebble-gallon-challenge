@@ -148,6 +148,29 @@ static bool are_dates_equal(time_t date1, time_t date2) {
     return false;
 }
 
+static bool should_vibrate() {
+    // Get the current hour
+    time_t current_time = now();
+    struct tm *time_struct = localtime(&current_time);
+    uint16_t hour = time_struct->tm_hour;
+
+    // Make adjustments to be able to calculate the silent hours
+    uint16_t start_silent = (end_of_day + 24 - 2) % 24;
+    uint16_t end_silent = (end_of_day + 24 + 8) % 24;
+    if (start_silent > end_silent) {
+        end_silent += 24;
+    }
+    if (hour < start_silent) {
+        hour += 24;
+    }
+
+    // Whether the hour is inside the silent hours
+    if (hour >= start_silent && hour <= end_silent) {
+        return false;
+    }
+    return true;
+}
+
 static time_t now() {
     return time(NULL);
 }
@@ -439,7 +462,11 @@ static void wakeup_handler(WakeupId id, int32_t reason) {
         app_timer_cancel(remove_notify_timer);
         text_layer_set_text(notify_text_layer, "Drink water!");
         layer_set_hidden(text_layer_get_layer(notify_text_layer), false);
-        vibes_short_pulse();
+
+        if (should_vibrate()) {
+            vibes_short_pulse();
+        }
+
         if (launch_reason() == APP_LAUNCH_WAKEUP && !launched) {
             launched = true;
             app_timer_register(1000, schedule_wakeup_if_needed, NULL);
@@ -451,7 +478,7 @@ static void wakeup_handler(WakeupId id, int32_t reason) {
     } else if (reason == WAKEUP_RESET_REASON) {
         persist_delete(WAKEUP_RESET_ID_KEY);
         wakeup_reset_id = 0;
-        text_layer_set_text(notify_text_layer, "Day changed!");
+        text_layer_set_text(notify_text_layer, "New day!");
         layer_set_hidden(text_layer_get_layer(notify_text_layer), false);
         if (launch_reason() == APP_LAUNCH_WAKEUP && !launched) {
             launched = true;
