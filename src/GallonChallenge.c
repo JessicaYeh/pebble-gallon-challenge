@@ -469,11 +469,11 @@ static void wakeup_handler(WakeupId id, int32_t reason) {
 
         if (launch_reason() == APP_LAUNCH_WAKEUP && !launched) {
             launched = true;
-            app_timer_register(1000, schedule_wakeup_if_needed, NULL);
+            app_timer_register(1000, reset_wakeup, NULL);
             // Auto exit the app after 2 minutes if it was awoken from a reminder
             quit_timer = app_timer_register(120000, app_exit_callback, NULL);
         } else {
-            schedule_wakeup_if_needed();
+            reset_wakeup();
         }
     } else if (reason == WAKEUP_RESET_REASON) {
         persist_delete(WAKEUP_RESET_ID_KEY);
@@ -483,12 +483,12 @@ static void wakeup_handler(WakeupId id, int32_t reason) {
         if (launch_reason() == APP_LAUNCH_WAKEUP && !launched) {
             launched = true;
             app_timer_register(1000, reset_wakeup, NULL);
-            app_timer_register(1000, schedule_reset_if_needed, NULL);
+            //app_timer_register(1000, schedule_reset_if_needed, NULL);
             // Auto exit the app after 2 minutes if it was awoken for a reset
             quit_timer = app_timer_register(120000, app_exit_callback, NULL);
         } else {
             reset_wakeup();
-            schedule_reset_if_needed();
+            //schedule_reset_if_needed();
             remove_notify_timer = app_timer_register(120000, cancel_app_exit_and_remove_notify_text, NULL);
         }
     }
@@ -497,14 +497,20 @@ static void wakeup_handler(WakeupId id, int32_t reason) {
 static void reset_wakeup() {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "reset_wakeup");
     // Cancel the reminder timer if one is present
-    if (wakeup_query(wakeup_reminder_id, NULL)) {
-        wakeup_cancel(wakeup_reminder_id);
-        persist_delete(WAKEUP_REMINDER_ID_KEY);
-        wakeup_reminder_id = 0;
-    }
+    wakeup_cancel_all();
+    persist_delete(WAKEUP_REMINDER_ID_KEY);
+    persist_delete(WAKEUP_RESET_ID_KEY);
+    wakeup_reminder_id = 0;
+    wakeup_reset_id = 0;
+    // if (wakeup_query(wakeup_reminder_id, NULL)) {
+    //     wakeup_cancel(wakeup_reminder_id);
+    //     persist_delete(WAKEUP_REMINDER_ID_KEY);
+    //     wakeup_reminder_id = 0;
+    // }
 
     // Restart the reminder timer if the goal isn't met
     schedule_wakeup_if_needed();
+    schedule_reset_if_needed();
 }
 
 static void reset_reset() {
@@ -539,9 +545,12 @@ static void schedule_wakeup_if_needed() {
     if (persist_exists(WAKEUP_REMINDER_ID_KEY)) {
         wakeup_reminder_id = persist_read_int(WAKEUP_REMINDER_ID_KEY);
         // query if event is still valid
-        if (wakeup_query(wakeup_reminder_id, NULL)) {
+        time_t wakeup_time = 0;
+        if (wakeup_query(wakeup_reminder_id, &wakeup_time)) {
             wakeup_scheduled = true;
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "Wakeup already scheduled");
+            char buffer[50];
+            strftime(buffer, 50, "%x %X %p", localtime(&wakeup_time));
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "Wakeup already scheduled for: %s", buffer);
         } else {
             persist_delete(WAKEUP_REMINDER_ID_KEY);
             wakeup_reminder_id = 0;
@@ -575,7 +584,10 @@ static void schedule_wakeup_if_needed() {
 
         // Persist to allow wakeup query after the app is closed.
         persist_write_int(WAKEUP_REMINDER_ID_KEY, wakeup_reminder_id);
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Scheduled wakeup");
+
+        char buffer[50];
+        strftime(buffer, 50, "%x %X %p", localtime(&future_time));
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Scheduled wakeup for: %s", buffer);
     }
 }
 
@@ -586,9 +598,12 @@ static void schedule_reset_if_needed() {
     if (persist_exists(WAKEUP_RESET_ID_KEY)) {
         wakeup_reset_id = persist_read_int(WAKEUP_RESET_ID_KEY);
         // query if event is still valid
-        if (wakeup_query(wakeup_reset_id, NULL)) {
+        time_t wakeup_time = 0;
+        if (wakeup_query(wakeup_reset_id, &wakeup_time)) {
             wakeup_scheduled = true;
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "Reset wakeup already scheduled");
+            char buffer[50];
+            strftime(buffer, 50, "%x %X %p", localtime(&wakeup_time));
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "Reset wakeup already scheduled for: %s", buffer);
         } else {
             persist_delete(WAKEUP_RESET_ID_KEY);
             wakeup_reset_id = 0;
@@ -622,7 +637,10 @@ static void schedule_reset_if_needed() {
 
         // Persist to allow wakeup query after the app is closed.
         persist_write_int(WAKEUP_RESET_ID_KEY, wakeup_reset_id);
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Scheduled reset wakeup");
+
+        char buffer[50];
+        strftime(buffer, 50, "%x %X %p", localtime(&future_time));
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Scheduled reset wakeup for: %s", buffer);
     }
 }
 
