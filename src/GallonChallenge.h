@@ -22,6 +22,7 @@ static time_t now();
 static time_t get_todays_date();
 static time_t get_yesterdays_date();
 static time_t get_next_reset_time();
+static float hours_left_in_day();
 static bool reset_current_date_and_volume_if_needed();
 static uint16_t calc_current_volume();
 static uint16_t get_unit_in_gal();
@@ -42,9 +43,9 @@ static void click_config_provider(void *context);
 
 static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed);
 static void wakeup_handler(WakeupId id, int32_t reason);
-static void reset_wakeup();
+static void reset_reminder();
 static void reset_reset();
-static void schedule_wakeup_if_needed();
+static void schedule_reminder_if_needed();
 static void schedule_reset_if_needed();
 static void app_exit_callback();
 

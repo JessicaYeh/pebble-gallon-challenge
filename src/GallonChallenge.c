@@ -134,14 +134,15 @@ static const char* eod_to_string(uint16_t hour) {
 static const char* reminder_to_string(uint16_t hour) {
     switch (hour) {
         case 0:  return "Off";
-        case 1:  return "1 Hour";
-        case 2:  return "2 Hours";
-        case 3:  return "3 Hours";
-        case 4:  return "4 Hours";
-        case 5:  return "5 Hours";
-        case 6:  return "6 Hours";
-        case 7:  return "7 Hours";
-        case 8:  return "8 Hours";
+        case 1:  return "Auto";
+        case 2:  return "1 Hour";
+        case 3:  return "2 Hours";
+        case 4:  return "3 Hours";
+        case 5:  return "4 Hours";
+        case 6:  return "5 Hours";
+        case 7:  return "6 Hours";
+        case 8:  return "7 Hours";
+        case 9:  return "8 Hours";
         default: return "";
     }
 }
@@ -217,6 +218,15 @@ static time_t get_next_reset_time() {
     return reset_time;
 }
 
+static float hours_left_in_day() {
+    time_t current_time = now();
+    time_t end_of_day_time = get_next_reset_time() - SEC_IN_HOUR * 2;
+
+    float hours_left = (end_of_day_time - current_time) / 3600.0;
+    if (hours_left < 0) hours_left = 0;
+    return hours_left;
+}
+
 static bool reset_current_date_and_volume_if_needed() {
     bool reset = false;
 
@@ -236,7 +246,7 @@ static bool reset_current_date_and_volume_if_needed() {
         //APP_LOG(APP_LOG_LEVEL_DEBUG, "Resetting current date and volume");
         current_date = today;
         current_oz = 0;
-        reset_wakeup();
+        reset_reminder();
         reset = true;
         
         // Reset the streak if needed
@@ -359,7 +369,7 @@ static void increment_volume() {
 
     // In case of repeating clicks, don't immediately reset the reminder
     app_timer_cancel(reset_reminder_timer);
-    reset_reminder_timer = app_timer_register(666, reset_wakeup, NULL);
+    reset_reminder_timer = app_timer_register(666, reset_reminder, NULL);
 }
 
 // Decrease the current volume by one unit
@@ -394,7 +404,7 @@ static void decrement_volume() {
 
     // In case of repeating clicks, don't immediately reset the reminder
     app_timer_cancel(reset_reminder_timer);
-    reset_reminder_timer = app_timer_register(666, reset_wakeup, NULL);
+    reset_reminder_timer = app_timer_register(666, reset_reminder, NULL);
 }
 
 static void update_streak_count() {
@@ -485,11 +495,11 @@ static void wakeup_handler(WakeupId id, int32_t reason) {
 
         if (launch_reason() == APP_LAUNCH_WAKEUP && !launched) {
             launched = true;
-            app_timer_register(1000, reset_wakeup, NULL);
+            app_timer_register(1000, reset_reminder, NULL);
             // Auto exit the app after 2 minutes if it was awoken from a reminder
             quit_timer = app_timer_register(120000, app_exit_callback, NULL);
         } else {
-            reset_wakeup();
+            reset_reminder();
         }
     } else if (reason == WAKEUP_RESET_REASON) {
         persist_delete(WAKEUP_RESET_ID_KEY);
@@ -498,20 +508,20 @@ static void wakeup_handler(WakeupId id, int32_t reason) {
         layer_set_hidden(text_layer_get_layer(notify_text_layer), false);
         if (launch_reason() == APP_LAUNCH_WAKEUP && !launched) {
             launched = true;
-            app_timer_register(1000, reset_wakeup, NULL);
+            app_timer_register(1000, reset_reminder, NULL);
             //app_timer_register(1000, schedule_reset_if_needed, NULL);
             // Auto exit the app after 2 minutes if it was awoken for a reset
             quit_timer = app_timer_register(120000, app_exit_callback, NULL);
         } else {
-            reset_wakeup();
+            reset_reminder();
             //schedule_reset_if_needed();
             remove_notify_timer = app_timer_register(120000, cancel_app_exit_and_remove_notify_text, NULL);
         }
     }
 }
 
-static void reset_wakeup() {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "reset_wakeup");
+static void reset_reminder() {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "reset_reminder");
     // Cancel the reminder timer if one is present
     wakeup_cancel_all();
     persist_delete(WAKEUP_REMINDER_ID_KEY);
@@ -525,7 +535,7 @@ static void reset_wakeup() {
     // }
 
     // Restart the reminder timer if the goal isn't met
-    schedule_wakeup_if_needed();
+    schedule_reminder_if_needed();
     schedule_reset_if_needed();
 }
 
@@ -542,7 +552,7 @@ static void reset_reset() {
     schedule_reset_if_needed();
 }
 
-static void schedule_wakeup_if_needed() {
+static void schedule_reminder_if_needed() {
     // Reminders are off, don't schedule a reminder
     if (inactivity_reminder_hours == 0) {
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Wakeup not scheduled, reminders off");
@@ -581,7 +591,18 @@ static void schedule_wakeup_if_needed() {
             wakeup_handler(id, reason);
         }
     } else if (!wakeup_scheduled) {
-        time_t future_time = time(NULL) + inactivity_reminder_hours * SEC_IN_HOUR;
+        float hours = 0;
+        if (inactivity_reminder_hours == 1) {
+            // Auto reminders based on how many hours are left in the day and 
+            // how much you still need to drink
+            hours = hours_left_in_day() / (get_unit_in_gal() * get_goal_scale() - calc_current_volume());
+        } else {
+            hours = inactivity_reminder_hours - 1;
+        }
+        if (hours < 0.5) hours = 0.5;
+        time_t future_time = time(NULL) + hours * SEC_IN_HOUR;
+        // Avoid time conflict with reset time
+        if (future_time == get_next_reset_time()) future_time += 0.5 * SEC_IN_HOUR;
 
         // Repeatedly try to schedule the wakeup in case of conflicting wakeup times
         wakeup_reminder_id = 0;
@@ -814,7 +835,7 @@ static void init(void) {
     
     tick_timer_service_subscribe(HOUR_UNIT, handle_hour_tick);
     wakeup_service_subscribe(wakeup_handler);
-    schedule_wakeup_if_needed();
+    schedule_reminder_if_needed();
     schedule_reset_if_needed();
 }
 
@@ -1122,7 +1143,7 @@ static void goal_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_ind
     set_image_for_goal();
     update_streak_count();
     update_volume_display();
-    reset_wakeup();
+    reset_reminder();
     window_stack_pop(true);
 }
 
@@ -1190,6 +1211,7 @@ static void unit_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, 
 static void unit_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
     unit = cell_index->row;
     update_volume_display();
+    reset_reminder();
     window_stack_pop(true);
 }
 
@@ -1327,7 +1349,7 @@ static void reminder_menu_draw_row_callback(GContext* ctx, const Layer *cell_lay
 static void reminder_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
     inactivity_reminder_hours = cell_index->row;
 
-    reset_wakeup();
+    reset_reminder();
 
     window_stack_pop(true);
 }
