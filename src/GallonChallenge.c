@@ -470,7 +470,7 @@ static void click_config_provider(void *context) {
 }
 
 static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed) {
-    if (tick_time->tm_hour == 0) {
+    if (tick_time->tm_hour == end_of_day) {
         //char buffer[50];
         //strftime(buffer, 50, "Last streak date: %x %X %p", localtime(&last_streak_date));
         //APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
