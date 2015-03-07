@@ -104,13 +104,29 @@ static const char* unit_to_string(Unit u) {
 static const char* eod_to_string(uint16_t hour) {
     switch (hour) {
         case 0:  return "12:00 AM";
+        case 1:  return "1:00 AM";
+        case 2:  return "2:00 AM";
         case 3:  return "3:00 AM";
+        case 4:  return "4:00 AM";
+        case 5:  return "5:00 AM";
         case 6:  return "6:00 AM";
+        case 7:  return "7:00 AM";
+        case 8:  return "8:00 AM";
         case 9:  return "9:00 AM";
+        case 10: return "10:00 AM";
+        case 11: return "11:00 AM";
         case 12: return "12:00 PM";
+        case 13: return "1:00 PM";
+        case 14: return "2:00 PM";
         case 15: return "3:00 PM";
+        case 16: return "4:00 PM";
+        case 17: return "5:00 PM";
         case 18: return "6:00 PM";
+        case 19: return "7:00 PM";
+        case 20: return "8:00 PM";
         case 21: return "9:00 PM";
+        case 22: return "10:00 PM";
+        case 23: return "11:00 PM";
         default: return "";
     }
 }
@@ -1225,7 +1241,7 @@ static uint16_t eod_menu_get_num_sections_callback(MenuLayer *menu_layer, void *
 }
 
 static uint16_t eod_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
-    return 8;
+    return 24;
 }
 
 static int16_t eod_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
@@ -1235,12 +1251,12 @@ static int16_t eod_menu_get_header_height_callback(MenuLayer *menu_layer, uint16
 
 static void eod_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
     // Use the row to specify which item we'll draw
-    menu_cell_basic_draw(ctx, cell_layer, eod_to_string(cell_index->row * 3), NULL, NULL);
+    menu_cell_basic_draw(ctx, cell_layer, eod_to_string(cell_index->row), NULL, NULL);
 }
 
 static void eod_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
     uint16_t old_end_of_day = end_of_day;
-    end_of_day = cell_index->row * 3;
+    end_of_day = cell_index->row;
     uint32_t time_diff = (end_of_day - old_end_of_day) * SEC_IN_HOUR;
     current_date -= time_diff;
     last_streak_date -= time_diff;
@@ -1253,7 +1269,7 @@ static void eod_menu_show() {
     window_stack_push(eod_menu_window, true);
     
     // Sets the selected unit in the menu
-    menu_layer_set_selected_index(eod_menu_layer, (MenuIndex) { .row = end_of_day / 3, .section = 0 }, MenuRowAlignCenter, false);
+    menu_layer_set_selected_index(eod_menu_layer, (MenuIndex) { .row = end_of_day, .section = 0 }, MenuRowAlignCenter, false);
 }
 
 static void eod_menu_window_load(Window *window) {
