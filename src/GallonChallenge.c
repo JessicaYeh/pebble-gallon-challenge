@@ -539,19 +539,6 @@ static void reset_reminder() {
     schedule_reset_if_needed();
 }
 
-static void reset_reset() {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "reset_reset");
-    // Cancel the reset timer if one is present
-    if (wakeup_query(wakeup_reset_id, NULL)) {
-        wakeup_cancel(wakeup_reset_id);
-        persist_delete(WAKEUP_RESET_ID_KEY);
-        wakeup_reset_id = 0;
-    }
-
-    // Restart the reset timer
-    schedule_reset_if_needed();
-}
-
 static void schedule_reminder_if_needed() {
     // Reminders are off, don't schedule a reminder
     if (inactivity_reminder_hours == 0) {
