@@ -1283,7 +1283,7 @@ static void eod_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_inde
     current_date -= time_diff;
     last_streak_date -= time_diff;
     reset_current_date_and_volume_if_needed();
-    reset_reset();
+    reset_reminder();
     window_stack_pop(true);
 }
 
