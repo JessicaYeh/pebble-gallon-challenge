@@ -3,3 +3,4 @@
 # Ignore build generated files
 build
 pebble-screenshot_*.png
+action_icon_settings*.png
