@@ -193,11 +193,11 @@ static time_t now() {
 }
 
 static time_t get_todays_date() {
-    return time(NULL) - end_of_day * SEC_IN_HOUR;
+    return now() - end_of_day * SEC_IN_HOUR;
 }
 
 static time_t get_yesterdays_date() {
-    return time(NULL) - end_of_day * SEC_IN_HOUR - SEC_IN_DAY;
+    return now() - end_of_day * SEC_IN_HOUR - SEC_IN_DAY;
 }
 
 static time_t get_next_reset_time() {
@@ -587,7 +587,7 @@ static void schedule_reminder_if_needed() {
             hours = inactivity_reminder_hours - 1;
         }
         if (hours < 0.5) hours = 0.5;
-        time_t future_time = time(NULL) + hours * SEC_IN_HOUR;
+        time_t future_time = now() + hours * SEC_IN_HOUR;
         // Avoid time conflict with reset time
         if (future_time == get_next_reset_time()) future_time += 0.5 * SEC_IN_HOUR;
 
