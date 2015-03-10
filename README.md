@@ -9,6 +9,8 @@ With the Gallon Challenge watchapp for Pebble, you can help yourself drink more 
 
 You can customize your drinking goal to be either a half gallon or whole gallon of water each day. The unit that you drink in can be customized to either ounces, cups, pints, or quarts. You can change the hour that your day starts at in case you have an irregular schedule.
 
+New in version 2! Set reminders to be notified if you have not consumed any water in a while. You can either choose how often you want to be reminded, or use the Auto reminder mode to let the app evenly space out reminders throughout the day to keep you on track for reaching your daily goal. These reminders won't bother you while you sleep, because it uses your "End of Day" setting to know approximately what time you are asleep. Reminders are inactive starting 2 hours before the end of day, and ending 9 hours after the end of day.
+
 ## Screenshots
 <img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-half-gallon.png" height="320px">
 <img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-gallon.png" height="320px">
@@ -16,6 +18,8 @@ You can customize your drinking goal to be either a half gallon or whole gallon 
 <img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-filled-half-gallon.png" height="320px">
 <img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-filled-gallon.png" height="320px">
 <img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-settings.png" height="320px">
+<img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-reminder.png" height="320px">
+<img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-reminder-settings.png" height="320px">
 
 ## Download
 Visit <a href="pebble://appstore/54f15dacbc88dfd03d000028">pebble://appstore/54f15dacbc88dfd03d000028</a> from your phone or search for "Gallon Challenge" from the appstore.
