@@ -230,20 +230,9 @@ static float hours_left_in_day() {
 static bool reset_current_date_and_volume_if_needed() {
     bool reset = false;
 
-    //APP_LOG(APP_LOG_LEVEL_DEBUG, "Reset current date and time if needed");
     time_t today = get_todays_date();
     time_t yesterday = get_yesterdays_date();
-    //char buffer[50];
-    //strftime(buffer, 50, "Today: %x %X %p", localtime(&today));
-    //APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
-    //strftime(buffer, 50, "Yesterday: %x %X %p", localtime(&yesterday));
-    //APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
-    //strftime(buffer, 50, "Last streak date: %x %X %p", localtime(&last_streak_date));
-    //APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
-    //strftime(buffer, 50, "Current date: %x %X %p", localtime(&current_date));
-    //APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
     if (!are_dates_equal(current_date, today)) {
-        //APP_LOG(APP_LOG_LEVEL_DEBUG, "Resetting current date and volume");
         current_date = today;
         current_oz = 0;
         reset_reminder();
@@ -251,7 +240,6 @@ static bool reset_current_date_and_volume_if_needed() {
         
         // Reset the streak if needed
         if (!are_dates_equal(last_streak_date, yesterday)) {
-            //APP_LOG(APP_LOG_LEVEL_DEBUG, "Resetting streak");
             if (streak_count > longest_streak) {
                 longest_streak = streak_count;
             }
@@ -471,17 +459,11 @@ static void click_config_provider(void *context) {
 
 static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed) {
     if (tick_time->tm_hour == end_of_day) {
-        //char buffer[50];
-        //strftime(buffer, 50, "Last streak date: %x %X %p", localtime(&last_streak_date));
-        //APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
-        //strftime(buffer, 50, "Current date: %x %X %p", localtime(&current_date));
-        //APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
         reset_current_date_and_volume_if_needed();
     }
 }
 
 static void wakeup_handler(WakeupId id, int32_t reason) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "wakeup_handler: %d", (int)reason);
     if (reason == WAKEUP_REMINDER_REASON) {
         persist_delete(WAKEUP_REMINDER_ID_KEY);
         wakeup_reminder_id = 0;
@@ -521,18 +503,12 @@ static void wakeup_handler(WakeupId id, int32_t reason) {
 }
 
 static void reset_reminder() {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "reset_reminder");
     // Cancel the reminder timer if one is present
     wakeup_cancel_all();
     persist_delete(WAKEUP_REMINDER_ID_KEY);
     persist_delete(WAKEUP_RESET_ID_KEY);
     wakeup_reminder_id = 0;
     wakeup_reset_id = 0;
-    // if (wakeup_query(wakeup_reminder_id, NULL)) {
-    //     wakeup_cancel(wakeup_reminder_id);
-    //     persist_delete(WAKEUP_REMINDER_ID_KEY);
-    //     wakeup_reminder_id = 0;
-    // }
 
     // Restart the reminder timer if the goal isn't met
     schedule_reminder_if_needed();
@@ -542,13 +518,11 @@ static void reset_reminder() {
 static void schedule_reminder_if_needed() {
     // Reminders are off, don't schedule a reminder
     if (inactivity_reminder_hours == 0) {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Wakeup not scheduled, reminders off");
         return;
     }
 
     // Goal is met, so don't schedule a reminder
     if (calc_current_volume() == get_unit_in_gal() * get_goal_scale()) {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Goal met, reminder not scheduled");
         return;
     }
 
@@ -558,12 +532,8 @@ static void schedule_reminder_if_needed() {
     if (persist_exists(WAKEUP_REMINDER_ID_KEY)) {
         wakeup_reminder_id = persist_read_int(WAKEUP_REMINDER_ID_KEY);
         // query if event is still valid
-        time_t wakeup_time = 0;
-        if (wakeup_query(wakeup_reminder_id, &wakeup_time)) {
+        if (wakeup_query(wakeup_reminder_id, NULL)) {
             wakeup_scheduled = true;
-            char buffer[50];
-            strftime(buffer, 50, "%x %X %p", localtime(&wakeup_time));
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "Wakeup already scheduled for: %s", buffer);
         } else {
             persist_delete(WAKEUP_REMINDER_ID_KEY);
             wakeup_reminder_id = 0;
@@ -602,16 +572,11 @@ static void schedule_reminder_if_needed() {
 
             // Schedule wakeup event and keep the WakeupId in case it needs to be queried
             wakeup_reminder_id = wakeup_schedule(future_time, WAKEUP_REMINDER_REASON, false);
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "Wakeup id: %d", (int)wakeup_reminder_id);
             attempts++;
         }
 
         // Persist to allow wakeup query after the app is closed.
         persist_write_int(WAKEUP_REMINDER_ID_KEY, wakeup_reminder_id);
-
-        char buffer[50];
-        strftime(buffer, 50, "%x %X %p", localtime(&future_time));
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Scheduled wakeup for: %s", buffer);
     }
 }
 
@@ -622,12 +587,8 @@ static void schedule_reset_if_needed() {
     if (persist_exists(WAKEUP_RESET_ID_KEY)) {
         wakeup_reset_id = persist_read_int(WAKEUP_RESET_ID_KEY);
         // query if event is still valid
-        time_t wakeup_time = 0;
-        if (wakeup_query(wakeup_reset_id, &wakeup_time)) {
+        if (wakeup_query(wakeup_reset_id, NULL)) {
             wakeup_scheduled = true;
-            char buffer[50];
-            strftime(buffer, 50, "%x %X %p", localtime(&wakeup_time));
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "Reset wakeup already scheduled for: %s", buffer);
         } else {
             persist_delete(WAKEUP_RESET_ID_KEY);
             wakeup_reset_id = 0;
@@ -655,16 +616,11 @@ static void schedule_reset_if_needed() {
 
             // Schedule wakeup event and keep the WakeupId in case it needs to be queried
             wakeup_reset_id = wakeup_schedule(future_time, WAKEUP_RESET_REASON, true);
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "Reset wakeup id: %d", (int)wakeup_reset_id);
             attempts++;
         }
 
         // Persist to allow wakeup query after the app is closed.
         persist_write_int(WAKEUP_RESET_ID_KEY, wakeup_reset_id);
-
-        char buffer[50];
-        strftime(buffer, 50, "%x %X %p", localtime(&future_time));
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Scheduled reset wakeup for: %s", buffer);
     }
 }
 
@@ -673,7 +629,6 @@ static void app_exit_callback() {
 }
 
 static void load_persistent_storage() {
-    //char buffer[50];
     current_oz = persist_exists(CURRENT_OZ_KEY) ? persist_read_int(CURRENT_OZ_KEY) : 0;
     end_of_day = persist_exists(EOD_KEY) ? persist_read_int(EOD_KEY) : 0;
     inactivity_reminder_hours = persist_exists(REMINDER_KEY) ? persist_read_int(REMINDER_KEY) : 0;
@@ -681,11 +636,7 @@ static void load_persistent_storage() {
     unit = persist_exists(UNIT_KEY) ? persist_read_int(UNIT_KEY) : CUP;
     streak_count = persist_exists(STREAK_COUNT_KEY) ? persist_read_int(STREAK_COUNT_KEY) : 0;
     last_streak_date = persist_exists(LAST_STREAK_DATE_KEY) ? persist_read_int(LAST_STREAK_DATE_KEY) : get_yesterdays_date();
-    //strftime(buffer, 50, "Last streak date: %x %X %p", localtime(&last_streak_date));
-    //APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
     current_date = persist_exists(CURRENT_DATE_KEY) ? persist_read_int(CURRENT_DATE_KEY) : get_todays_date();
-    //strftime(buffer, 50, "Current date: %x %X %p", localtime(&current_date));
-    //APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
     total_consumed = persist_exists(TOTAL_CONSUMED_KEY) ? persist_read_int(TOTAL_CONSUMED_KEY) : 0;
     longest_streak = persist_exists(LONGEST_STREAK_KEY) ? persist_read_int(LONGEST_STREAK_KEY) : 0;
     drinking_since = persist_exists(DRINKING_SINCE_KEY) ? persist_read_int(DRINKING_SINCE_KEY) : now();
