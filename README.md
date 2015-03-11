@@ -19,6 +19,7 @@ New in version 2! Set reminders to be notified if you have not consumed any wate
 <img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-filled-gallon.png" height="320px">
 <img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-settings.png" height="320px">
 <img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-reminder.png" height="320px">
+<img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-reminder-gallon.png" height="320px">
 <img src="https://raw.githubusercontent.com/JessicaYeh/pebble-gallon-challenge/master/screenshots/screenshot-in-pebble-reminder-settings.png" height="320px">
 
 ## Download
