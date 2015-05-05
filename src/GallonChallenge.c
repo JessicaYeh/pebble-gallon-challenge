@@ -2,43 +2,6 @@
 #include "PDUtils.h"
 #include "GallonChallenge.h"
 
-// Key for saving the previous date that the user completed the day's challenge
-// to determine if the streak count needs to be reset. Saved as a time_t.
-#define LAST_STREAK_DATE_KEY 1000
-// Key for saving streak count
-#define STREAK_COUNT_KEY 1001
-// Keys for saving current day's water volume intake
-#define CURRENT_DATE_KEY 1002
-#define CURRENT_OZ_KEY 1003
-// Key for saving display unit type
-#define UNIT_KEY 1004
-// Key for saving goal unit type
-#define GOAL_KEY 1005
-// Key for saving end of day
-#define EOD_KEY 1006
-// Keys for saving profile info
-#define TOTAL_CONSUMED_KEY 1007
-#define LONGEST_STREAK_KEY 1008
-#define DRINKING_SINCE_KEY 1009
-// Key for saving the number of hours for inactivity reminder
-#define REMINDER_KEY 1010
-
-#define WAKEUP_REMINDER_REASON 2000
-#define WAKEUP_REMINDER_ID_KEY 2001
-#define WAKEUP_RESET_REASON 2002
-#define WAKEUP_RESET_ID_KEY 2003
-
-#define OZ_IN_CUP 8
-#define OZ_IN_PINT 16
-#define OZ_IN_QUART 32
-#define OZ_IN_GAL 128
-#define CUP_IN_GAL 16
-#define PINT_IN_GAL 8
-#define QUART_IN_GAL 4
-
-#define SEC_IN_HOUR 3600
-#define SEC_IN_DAY 86400
-
 
 static Window *window;
 
