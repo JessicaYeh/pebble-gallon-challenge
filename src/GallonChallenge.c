@@ -14,7 +14,7 @@ static BitmapLayer *gallon_filled_layer, *gallon_layer, *star_layer;
 static Unit goal, unit;
 
 static time_t current_date, last_streak_date, drinking_since;
-static uint16_t current_oz, streak_count, end_of_day, inactivity_reminder_hours, longest_streak;
+static uint16_t current_oz, streak_count, start_of_day, end_of_day, inactivity_reminder_hours, longest_streak;
 static uint32_t total_consumed;
 
 static WakeupId wakeup_reminder_id, wakeup_reset_id;
@@ -64,7 +64,7 @@ static const char* unit_to_string(Unit u) {
     }
 }
 
-static const char* eod_to_string(uint16_t hour) {
+static const char* hour_to_string(uint16_t hour) {
     switch (hour) {
         case 0:  return "12:00 AM";
         case 1:  return "1:00 AM";
@@ -136,7 +136,7 @@ static bool should_vibrate() {
 
     // Make adjustments to be able to calculate the silent hours
     uint16_t start_silent = (end_of_day + 24 - 2) % 24;
-    uint16_t end_silent = (end_of_day + 24 + 8) % 24;
+    uint16_t end_silent = (start_of_day + 24) % 24;
     if (start_silent > end_silent) {
         end_silent += 24;
     }
@@ -593,6 +593,7 @@ static void app_exit_callback() {
 
 static void load_persistent_storage() {
     current_oz = persist_exists(CURRENT_OZ_KEY) ? persist_read_int(CURRENT_OZ_KEY) : 0;
+    start_of_day = persist_exists(SOD_KEY) ? persist_read_int(SOD_KEY) : 9;
     end_of_day = persist_exists(EOD_KEY) ? persist_read_int(EOD_KEY) : 0;
     inactivity_reminder_hours = persist_exists(REMINDER_KEY) ? persist_read_int(REMINDER_KEY) : 0;
     goal = persist_exists(GOAL_KEY) ? persist_read_int(GOAL_KEY) : GALLON;
@@ -607,6 +608,7 @@ static void load_persistent_storage() {
 
 static void save_persistent_storage() {
     persist_write_int(CURRENT_OZ_KEY, current_oz);
+    persist_write_int(SOD_KEY, start_of_day);
     persist_write_int(EOD_KEY, end_of_day);
     persist_write_int(REMINDER_KEY, inactivity_reminder_hours);
     persist_write_int(GOAL_KEY, goal);
@@ -720,6 +722,12 @@ static void init(void) {
         .unload = unit_menu_window_unload,
     });
     
+    sod_menu_window = window_create();
+    window_set_window_handlers(sod_menu_window, (WindowHandlers) {
+        .load = sod_menu_window_load,
+        .unload = sod_menu_window_unload,
+    });
+
     eod_menu_window = window_create();
     window_set_window_handlers(eod_menu_window, (WindowHandlers) {
         .load = eod_menu_window_load,
@@ -755,6 +763,7 @@ static void deinit(void) {
     window_destroy(profile_menu_window);
     window_destroy(goal_menu_window);
     window_destroy(unit_menu_window);
+    window_destroy(sod_menu_window);
     window_destroy(eod_menu_window);
     window_destroy(reminder_menu_window);
 }
@@ -788,7 +797,7 @@ static uint16_t settings_menu_get_num_rows_callback(MenuLayer *menu_layer, uint1
             return 1;
             
         case 1:
-            return 4;
+            return 5;
             
         default:
             return 0;
@@ -821,9 +830,12 @@ static void settings_menu_draw_row_callback(GContext* ctx, const Layer *cell_lay
                     menu_cell_basic_draw(ctx, cell_layer, "Drinking Unit", unit_to_string(unit), NULL);
                     break;
                 case 2:
-                    menu_cell_basic_draw(ctx, cell_layer, "End of Day", eod_to_string(end_of_day), NULL);
+                    menu_cell_basic_draw(ctx, cell_layer, "Start of Day", hour_to_string(start_of_day), NULL);
                     break;
                 case 3:
+                    menu_cell_basic_draw(ctx, cell_layer, "End of Day", hour_to_string(end_of_day), NULL);
+                    break;
+                case 4:
                     menu_cell_basic_draw(ctx, cell_layer, "Drink Reminders", reminder_to_string(inactivity_reminder_hours), NULL);
                     break;
             }
@@ -849,9 +861,12 @@ static void settings_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell
                     unit_menu_show();
                     break;
                 case 2:
-                    eod_menu_show();
+                    sod_menu_show();
                     break;
                 case 3:
+                    eod_menu_show();
+                    break;
+                case 4:
                     reminder_menu_show();
                     break;
             }
@@ -1154,6 +1169,73 @@ static void unit_menu_window_unload(Window *window) {
 
 
 
+// Start of day menu stuff
+static void sod_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
+    menu_cell_basic_header_draw(ctx, cell_layer, "Change Start of Day");
+}
+
+static uint16_t sod_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
+    return 1;
+}
+
+static uint16_t sod_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    return 24;
+}
+
+static int16_t sod_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    // This is a define provided in pebble.h that you may use for the default height
+    return MENU_CELL_BASIC_HEADER_HEIGHT;
+}
+
+static void sod_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+    // Use the row to specify which item we'll draw
+    menu_cell_basic_draw(ctx, cell_layer, hour_to_string(cell_index->row), NULL, NULL);
+}
+
+static void sod_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+    start_of_day = cell_index->row;
+    reset_reminder();
+    window_stack_pop(true);
+}
+
+static void sod_menu_show() {
+    window_stack_push(sod_menu_window, true);
+    
+    // Sets the selected unit in the menu
+    menu_layer_set_selected_index(sod_menu_layer, (MenuIndex) { .row = start_of_day, .section = 0 }, MenuRowAlignCenter, false);
+}
+
+static void sod_menu_window_load(Window *window) {
+    Layer *menu_window_layer = window_get_root_layer(window);
+    GRect menu_bounds = layer_get_bounds(menu_window_layer);
+    
+    // Create the menu layer
+    sod_menu_layer = menu_layer_create(menu_bounds);
+    
+    // Bind the menu layer's click config provider to the window for interactivity
+    menu_layer_set_click_config_onto_window(sod_menu_layer, window);
+    
+    // Setup callbacks
+    menu_layer_set_callbacks(sod_menu_layer, NULL, (MenuLayerCallbacks){
+        .get_header_height = sod_menu_get_header_height_callback,
+        .draw_header = sod_menu_draw_header_callback,
+        .get_num_sections = sod_menu_get_num_sections_callback,
+        .get_num_rows = sod_menu_get_num_rows_callback,
+        .draw_row = sod_menu_draw_row_callback,
+        .select_click = sod_menu_select_callback,
+    });
+    
+    // Add it to the window for display
+    layer_add_child(menu_window_layer, menu_layer_get_layer(sod_menu_layer));
+}
+
+static void sod_menu_window_unload(Window *window) {
+    menu_layer_destroy(sod_menu_layer);
+}
+// End end of day menu stuff
+
+
+
 // End of day menu stuff
 static void eod_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
     menu_cell_basic_header_draw(ctx, cell_layer, "Change End of Day");
@@ -1174,7 +1256,7 @@ static int16_t eod_menu_get_header_height_callback(MenuLayer *menu_layer, uint16
 
 static void eod_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
     // Use the row to specify which item we'll draw
-    menu_cell_basic_draw(ctx, cell_layer, eod_to_string(cell_index->row), NULL, NULL);
+    menu_cell_basic_draw(ctx, cell_layer, hour_to_string(cell_index->row), NULL, NULL);
 }
 
 static void eod_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {

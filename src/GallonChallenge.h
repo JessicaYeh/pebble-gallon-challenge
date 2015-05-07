@@ -11,18 +11,20 @@
 #define CURRENT_OZ_KEY 1003
 // Key for saving display unit type
 #define UNIT_KEY 1004
+// Key for saving the type of unit system
+#define UNIT_SYSTEM_KEY 1011
 // Key for saving goal unit type
 #define GOAL_KEY 1005
 // Key for saving end of day
 #define EOD_KEY 1006
+// Key for saving start of day
+#define SOD_KEY 1012
 // Keys for saving profile info
 #define TOTAL_CONSUMED_KEY 1007
 #define LONGEST_STREAK_KEY 1008
 #define DRINKING_SINCE_KEY 1009
 // Key for saving the number of hours for inactivity reminder
 #define REMINDER_KEY 1010
-// Key for saving the type of unit system
-#define UNIT_SYSTEM_KEY 1011
 
 #define WAKEUP_REMINDER_REASON 2000
 #define WAKEUP_REMINDER_ID_KEY 2001
@@ -58,7 +60,7 @@ static uint16_t half_gallon_height(float vol);
 static uint16_t gallon_height(float vol);
 static uint16_t container_height(float vol);
 static const char* unit_to_string(Unit u);
-static const char* eod_to_string(uint16_t hour);
+static const char* hour_to_string(uint16_t hour);
 static const char* reminder_to_string(uint16_t hour);
 static bool are_dates_equal(time_t date1, time_t date2);
 static bool should_vibrate();
@@ -147,6 +149,18 @@ static void unit_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_ind
 static void unit_menu_show();
 static void unit_menu_window_load(Window *window);
 static void unit_menu_window_unload(Window *window);
+
+static Window *sod_menu_window;
+static MenuLayer *sod_menu_layer;
+static void sod_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data);
+static uint16_t sod_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data);
+static uint16_t sod_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data);
+static int16_t sod_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data);
+static void sod_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data);
+static void sod_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data);
+static void sod_menu_show();
+static void sod_menu_window_load(Window *window);
+static void sod_menu_window_unload(Window *window);
 
 static Window *eod_menu_window;
 static MenuLayer *eod_menu_layer;
