@@ -4,7 +4,7 @@
   "longName": "Gallon Challenge",
   "companyName": "Jessica Yeh",
   "versionCode": 1,
-  "versionLabel": "2.0",
+  "versionLabel": "2.1",
   "watchapp": {
     "watchface": false
   },
@@ -13,6 +13,12 @@
   },
   "resources": {
     "media": [
+      {
+        "menuIcon": true,
+        "type": "png",
+        "name": "IMAGE_MENU_ICON",
+        "file": "images/app_icon.png"
+      },
       {
         "type": "png",
         "name": "IMAGE_ACTION_ICON_PLUS",
