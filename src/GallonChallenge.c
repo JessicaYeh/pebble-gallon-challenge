@@ -11,6 +11,7 @@ static ActionBarLayer *action_bar;
 static TextLayer *streak_text_layer, *text_layer, *white_layer, *notify_text_layer;
 static BitmapLayer *gallon_filled_layer, *gallon_layer, *star_layer;
 
+static UnitSystem unit_system;
 static Unit goal, unit;
 
 static time_t current_date, last_streak_date, drinking_since;
@@ -49,6 +50,14 @@ static uint16_t container_height(float vol) {
         default:
             return gallon_height(vol);
             break;
+    }
+}
+
+static const char* unit_system_to_string(UnitSystem us) {
+    switch (us) {
+        case CUSTOMARY:   return "Customary";
+        case METRIC:      return "Metric";
+        default:          return "";
     }
 }
 
@@ -596,6 +605,7 @@ static void load_persistent_storage() {
     start_of_day = persist_exists(SOD_KEY) ? persist_read_int(SOD_KEY) : 9;
     end_of_day = persist_exists(EOD_KEY) ? persist_read_int(EOD_KEY) : 0;
     inactivity_reminder_hours = persist_exists(REMINDER_KEY) ? persist_read_int(REMINDER_KEY) : 0;
+    unit_system = persist_exists(UNIT_SYSTEM_KEY) ? persist_read_int(UNIT_SYSTEM_KEY) : CUSTOMARY;
     goal = persist_exists(GOAL_KEY) ? persist_read_int(GOAL_KEY) : GALLON;
     unit = persist_exists(UNIT_KEY) ? persist_read_int(UNIT_KEY) : CUP;
     streak_count = persist_exists(STREAK_COUNT_KEY) ? persist_read_int(STREAK_COUNT_KEY) : 0;
@@ -611,6 +621,7 @@ static void save_persistent_storage() {
     persist_write_int(SOD_KEY, start_of_day);
     persist_write_int(EOD_KEY, end_of_day);
     persist_write_int(REMINDER_KEY, inactivity_reminder_hours);
+    persist_write_int(UNIT_SYSTEM_KEY, unit_system);
     persist_write_int(GOAL_KEY, goal);
     persist_write_int(UNIT_KEY, unit);
     persist_write_int(STREAK_COUNT_KEY, streak_count);
@@ -710,6 +721,12 @@ static void init(void) {
         .unload = profile_menu_window_unload,
     });
     
+    unit_system_menu_window = window_create();
+    window_set_window_handlers(unit_system_menu_window, (WindowHandlers) {
+        .load = unit_system_menu_window_load,
+        .unload = unit_system_menu_window_unload,
+    });
+
     goal_menu_window = window_create();
     window_set_window_handlers(goal_menu_window, (WindowHandlers) {
         .load = goal_menu_window_load,
@@ -761,6 +778,7 @@ static void deinit(void) {
     window_destroy(window);
     window_destroy(settings_menu_window);
     window_destroy(profile_menu_window);
+    window_destroy(unit_system_menu_window);
     window_destroy(goal_menu_window);
     window_destroy(unit_menu_window);
     window_destroy(sod_menu_window);
@@ -797,7 +815,7 @@ static uint16_t settings_menu_get_num_rows_callback(MenuLayer *menu_layer, uint1
             return 1;
             
         case 1:
-            return 5;
+            return 6;
             
         default:
             return 0;
@@ -824,18 +842,21 @@ static void settings_menu_draw_row_callback(GContext* ctx, const Layer *cell_lay
         case 1:
             switch (cell_index->row) {
                 case 0:
-                    menu_cell_basic_draw(ctx, cell_layer, "Daily Goal", unit_to_string(goal), NULL);
+                    menu_cell_basic_draw(ctx, cell_layer, "Unit System", unit_system_to_string(unit_system), NULL);
                     break;
                 case 1:
-                    menu_cell_basic_draw(ctx, cell_layer, "Drinking Unit", unit_to_string(unit), NULL);
+                    menu_cell_basic_draw(ctx, cell_layer, "Daily Goal", unit_to_string(goal), NULL);
                     break;
                 case 2:
-                    menu_cell_basic_draw(ctx, cell_layer, "Start of Day", hour_to_string(start_of_day), NULL);
+                    menu_cell_basic_draw(ctx, cell_layer, "Drinking Unit", unit_to_string(unit), NULL);
                     break;
                 case 3:
-                    menu_cell_basic_draw(ctx, cell_layer, "End of Day", hour_to_string(end_of_day), NULL);
+                    menu_cell_basic_draw(ctx, cell_layer, "Start of Day", hour_to_string(start_of_day), NULL);
                     break;
                 case 4:
+                    menu_cell_basic_draw(ctx, cell_layer, "End of Day", hour_to_string(end_of_day), NULL);
+                    break;
+                case 5:
                     menu_cell_basic_draw(ctx, cell_layer, "Drink Reminders", reminder_to_string(inactivity_reminder_hours), NULL);
                     break;
             }
@@ -855,18 +876,21 @@ static void settings_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell
         case 1:
             switch (cell_index->row) {
                 case 0:
-                    goal_menu_show();
+                    unit_system_menu_show();
                     break;
                 case 1:
-                    unit_menu_show();
+                    goal_menu_show();
                     break;
                 case 2:
-                    sod_menu_show();
+                    unit_menu_show();
                     break;
                 case 3:
-                    eod_menu_show();
+                    sod_menu_show();
                     break;
                 case 4:
+                    eod_menu_show();
+                    break;
+                case 5:
                     reminder_menu_show();
                     break;
             }
@@ -1028,6 +1052,73 @@ static void profile_menu_window_unload(Window *window) {
     menu_layer_destroy(profile_menu_layer);
 }
 // End settings menu stuff
+
+
+
+// Unit system menu stuff
+static void unit_system_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
+    menu_cell_basic_header_draw(ctx, cell_layer, "Change Unit System");
+}
+
+static uint16_t unit_system_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
+    return 1;
+}
+
+static uint16_t unit_system_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    return 2;
+}
+
+static int16_t unit_system_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+    return MENU_CELL_BASIC_HEADER_HEIGHT;
+}
+
+static void unit_system_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+    menu_cell_basic_draw(ctx, cell_layer, unit_system_to_string(cell_index->row), NULL, NULL);
+}
+
+static void unit_system_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+    unit_system = cell_index->row;
+    update_streak_count();
+    update_volume_display();
+    reset_reminder();
+    window_stack_pop(true);
+}
+
+static void unit_system_menu_show() {
+    window_stack_push(unit_system_menu_window, true);
+    
+    // Sets the selected unit system in the menu
+    menu_layer_set_selected_index(unit_system_menu_layer, (MenuIndex) { .row = unit_system, .section = 0 }, MenuRowAlignCenter, false);
+}
+
+static void unit_system_menu_window_load(Window *window) {
+    Layer *menu_window_layer = window_get_root_layer(window);
+    GRect menu_bounds = layer_get_bounds(menu_window_layer);
+    
+    // Create the menu layer
+    unit_system_menu_layer = menu_layer_create(menu_bounds);
+    
+    // Bind the menu layer's click config provider to the window for interactivity
+    menu_layer_set_click_config_onto_window(unit_system_menu_layer, window);
+    
+    // Setup callbacks
+    menu_layer_set_callbacks(unit_system_menu_layer, NULL, (MenuLayerCallbacks){
+        .get_header_height = unit_system_menu_get_header_height_callback,
+        .draw_header = unit_system_menu_draw_header_callback,
+        .get_num_sections = unit_system_menu_get_num_sections_callback,
+        .get_num_rows = unit_system_menu_get_num_rows_callback,
+        .draw_row = unit_system_menu_draw_row_callback,
+        .select_click = unit_system_menu_select_callback,
+    });
+    
+    // Add it to the window for display
+    layer_add_child(menu_window_layer, menu_layer_get_layer(unit_system_menu_layer));
+}
+
+static void unit_system_menu_window_unload(Window *window) {
+    menu_layer_destroy(unit_system_menu_layer);
+}
+// End unit system menu stuff
 
 
 

@@ -48,17 +48,23 @@
 #define SEC_IN_DAY 86400
 
 typedef enum {
-    OUNCE = 0,
-    CUP = 1,
-    PINT = 2,
-    QUART = 3,
-    HALF_GALLON = 4,
-    GALLON = 5
+    OUNCE,
+    CUP,
+    PINT,
+    QUART,
+    HALF_GALLON,
+    GALLON
 } Unit;
+
+typedef enum {
+    CUSTOMARY,
+    METRIC
+} UnitSystem;
 
 static uint16_t half_gallon_height(float vol);
 static uint16_t gallon_height(float vol);
 static uint16_t container_height(float vol);
+static const char* unit_system_to_string(UnitSystem us);
 static const char* unit_to_string(Unit u);
 static const char* hour_to_string(uint16_t hour);
 static const char* reminder_to_string(uint16_t hour);
@@ -125,6 +131,18 @@ static void profile_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_
 static void profile_menu_show();
 static void profile_menu_window_load(Window *window);
 static void profile_menu_window_unload(Window *window);
+
+static Window *unit_system_menu_window;
+static MenuLayer *unit_system_menu_layer;
+static void unit_system_menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data);
+static uint16_t unit_system_menu_get_num_sections_callback(MenuLayer *menu_layer, void *data);
+static uint16_t unit_system_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data);
+static int16_t unit_system_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data);
+static void unit_system_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data);
+static void unit_system_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data);
+static void unit_system_menu_show();
+static void unit_system_menu_window_load(Window *window);
+static void unit_system_menu_window_unload(Window *window);
 
 static Window *goal_menu_window;
 static MenuLayer *goal_menu_layer;
