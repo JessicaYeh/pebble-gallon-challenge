@@ -230,6 +230,7 @@ static bool reset_current_date_and_volume_if_needed() {
     if (!are_dates_equal(current_date, today)) {
         current_date = today;
         current_oz = 0;
+        current_ml = 0;
         reset_reminder();
         reset = true;
         
@@ -248,8 +249,8 @@ static bool reset_current_date_and_volume_if_needed() {
     return reset;
 }
 
-// Uses the current_oz and the chosen display unit to calculate the volume of
-// liquid consumed in the current day
+// Uses the current_oz/current_ml and the chosen display unit to calculate the 
+// volume of liquid consumed in the current day
 static uint16_t calc_current_volume() {
     switch (unit_system) {
         case CUSTOMARY:
