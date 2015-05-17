@@ -15,7 +15,7 @@ static UnitSystem unit_system;
 static Unit goal, unit;
 
 static time_t current_date, last_streak_date, drinking_since;
-static uint16_t current_oz, streak_count, start_of_day, end_of_day, inactivity_reminder_hours, longest_streak;
+static uint16_t current_oz, current_ml, streak_count, start_of_day, end_of_day, inactivity_reminder_hours, longest_streak;
 static uint32_t total_consumed;
 
 static WakeupId wakeup_reminder_id, wakeup_reset_id;
@@ -25,12 +25,20 @@ static AppTimer *quit_timer, *reset_reminder_timer, *remove_notify_timer;
 static bool launched = false;
 
 
-static uint16_t half_gallon_height(float vol) {
-    return -4.044923*10e-7*vol*vol*vol*vol + 2.648887*10e-5*vol*vol*vol - 2.999254*10e-4*vol*vol - 1.267036*vol + 92.27357;
+static uint16_t half_gallon_height(float v) {
+    if (unit_system == CUSTOMARY) {
+        return -4.044923*10e-7*v*v*v*v + 2.648887*10e-5*v*v*v - 2.999254*10e-4*v*v - 1.267036*v + 92.27357;
+    } else {
+        return -4.24140902*10e-13*v*v*v*v + 8.67987446*10e-10*v*v*v - 3.071236265*10e-7*v*v - 4.054516321*10e-3*v + 92.27356825;
+    }
 }
 
-static uint16_t gallon_height(float vol) {
-    return -1.148968*10e-8*vol*vol*vol*vol - 3.903847*10e-7*vol*vol*vol + 2.392628*10e-4*vol*vol - 0.6883706*vol + 90.78948;
+static uint16_t gallon_height(float v) {
+    if (unit_system == CUSTOMARY) {
+        return -1.148968*10e-8*v*v*v*v - 3.903847*10e-7*v*v*v + 2.392628*10e-4*v*v - 0.6883706*v + 90.78948;
+    } else {
+        return -1.204780775*10e-14*v*v*v*v - 1.279212557*10e-11*v*v*v + 2.450050752*10e-7*v*v - 2.202785976*10e-3*v + 90.78948058;
+    }
 }
 
 static uint16_t container_height(float vol) {
@@ -38,7 +46,7 @@ static uint16_t container_height(float vol) {
         return 93;
     }
     
-    if (vol >= OZ_IN_GAL * get_goal_scale()) {
+    if (vol >= get_goal_vol(unit_system)) {
         return 0;
     }
     
@@ -62,14 +70,29 @@ static const char* unit_system_to_string(UnitSystem us) {
 }
 
 static const char* unit_to_string(Unit u) {
-    switch (u) {
-        case OUNCE:       return "Ounces";
-        case CUP:         return "Cups";
-        case PINT:        return "Pints";
-        case QUART:       return "Quarts";
-        case HALF_GALLON: return "Half Gallon";
-        case GALLON:      return "One Gallon";
-        default:          return "";
+    switch (unit_system) {
+        case CUSTOMARY:
+            switch (u) {
+                case OUNCE:       return "Ounces";
+                case CUP:         return "Cups";
+                case PINT:        return "Pints";
+                case QUART:       return "Quarts";
+                case HALF_GALLON: return "Half Gallon";
+                case GALLON:      return "One Gallon";
+                default:          return "";
+            }
+        case METRIC:
+            switch (u) {
+                case OUNCE:       return "50 mL";
+                case CUP:         return "250 mL";
+                case PINT:        return "500 mL";
+                case QUART:       return "1 Liter";
+                case HALF_GALLON: return "2 Liters";
+                case GALLON:      return "4 Liters";
+                default:          return "";
+            }
+        default:
+            return "";
     }
 }
 
@@ -228,20 +251,46 @@ static bool reset_current_date_and_volume_if_needed() {
 // Uses the current_oz and the chosen display unit to calculate the volume of
 // liquid consumed in the current day
 static uint16_t calc_current_volume() {
-    switch (unit) {
-        case CUP:   return current_oz / OZ_IN_CUP;
-        case PINT:  return current_oz / OZ_IN_PINT;
-        case QUART: return current_oz / OZ_IN_QUART;
-        default:    return current_oz;
+    switch (unit_system) {
+        case CUSTOMARY:
+            switch (unit) {
+                case CUP:   return current_oz / OZ_IN_CUP;
+                case PINT:  return current_oz / OZ_IN_PINT;
+                case QUART: return current_oz / OZ_IN_QUART;
+                default:    return current_oz;
+            }
+        case METRIC:
+            return current_ml;
+        default:
+            return 0;
     }
 }
 
 static uint16_t get_unit_in_gal() {
-    switch (unit) {
-        case CUP:   return CUP_IN_GAL;
-        case PINT:  return PINT_IN_GAL;
-        case QUART: return QUART_IN_GAL;
-        default:    return OZ_IN_GAL;
+    switch (unit_system) {
+        case CUSTOMARY:
+            switch (unit) {
+                case CUP:   return CUP_IN_GAL;
+                case PINT:  return PINT_IN_GAL;
+                case QUART: return QUART_IN_GAL;
+                default:    return OZ_IN_GAL;
+            }
+        case METRIC:
+            return ML_IN_GAL;
+        default:
+            return 0;
+    }
+}
+
+static uint16_t get_ml_in(Unit u) {
+    switch (u) {
+        case OUNCE:       return ML_IN_OZ;
+        case CUP:         return ML_IN_CUP;
+        case PINT:        return ML_IN_PINT;
+        case QUART:       return ML_IN_QUART;
+        case HALF_GALLON: return ML_IN_GAL * 0.5;
+        case GALLON:      return ML_IN_GAL;
+        default:          return 0;
     }
 }
 
@@ -249,6 +298,14 @@ static float get_goal_scale() {
     switch (goal) {
         case HALF_GALLON: return 0.5;
         default:          return 1.0;
+    }
+}
+
+static uint16_t get_goal_vol(UnitSystem us) {
+    switch (us) {
+        case CUSTOMARY: return OZ_IN_GAL * get_goal_scale();
+        case METRIC:    return ML_IN_GAL * get_goal_scale();
+        default:        return 0;
     }
 }
 
@@ -277,10 +334,11 @@ static void update_volume_display() {
     
     uint16_t numerator = calc_current_volume();
     uint16_t denominator = get_unit_in_gal() * get_goal_scale();
-    snprintf(body_text, sizeof(body_text), "%u/%u %s", numerator, denominator, unit_to_string(unit));
+    snprintf(body_text, sizeof(body_text), "%u/%u %s", numerator, denominator, 
+        (unit_system == CUSTOMARY) ? unit_to_string(unit) : "mL");
     text_layer_set_text(text_layer, body_text);
     
-    uint16_t height = container_height(current_oz);
+    uint16_t height = container_height((unit_system == CUSTOMARY) ? current_oz : current_ml);
     layer_set_frame(text_layer_get_layer(white_layer), GRect(0, 37, 124, height));
 
     // Only show the star if the goal is met
@@ -300,29 +358,51 @@ static void update_streak_display() {
 
 // Increase the current volume by one unit
 static void increment_volume() {
-    uint16_t volume_increase = 0;
+    uint16_t oz_vol_inc, ml_vol_inc;
     switch (unit) {
         case CUP:
-            volume_increase = OZ_IN_CUP;
+            oz_vol_inc = OZ_IN_CUP;
+            ml_vol_inc = ML_IN_CUP;
             break;
         case PINT:
-            volume_increase = OZ_IN_PINT;
+            oz_vol_inc = OZ_IN_PINT;
+            ml_vol_inc = ML_IN_PINT;
             break;
         case QUART:
-            volume_increase = OZ_IN_QUART;
+            oz_vol_inc = OZ_IN_QUART;
+            ml_vol_inc = ML_IN_QUART;
             break;
         default:
-            volume_increase = 1;
+            oz_vol_inc = 1;
+            ml_vol_inc = ML_IN_OZ;
             break;
     }
     
-    uint16_t oz_in_goal = OZ_IN_GAL * get_goal_scale();
-    if (current_oz + volume_increase > oz_in_goal) {
-        total_consumed += oz_in_goal - current_oz;
-    } else if (current_oz < oz_in_goal) {
-        total_consumed += volume_increase;
+    // maybe not needed
+    uint16_t oz_in_goal, ml_in_goal;
+    switch (unit_system) {
+        case CUSTOMARY:
+            oz_in_goal = OZ_IN_GAL * get_goal_scale();
+            if (current_oz + oz_vol_inc > oz_in_goal) {
+                total_consumed += oz_in_goal - current_oz;
+            } else if (current_oz < oz_in_goal) {
+                total_consumed += oz_vol_inc;
+            }
+            break;
+        case METRIC:
+            ml_in_goal = ML_IN_GAL * get_goal_scale();
+            if (current_ml + ml_vol_inc > ml_in_goal) {
+                total_consumed += (ml_in_goal - current_ml) / EXACT_ML_IN_OZ;
+            } else if (current_ml < ml_in_goal) {
+                total_consumed += ml_vol_inc / EXACT_ML_IN_OZ;
+            }
+            break;
+        default:
+            break;
     }
-    current_oz += volume_increase;
+
+    current_oz += oz_vol_inc;
+    current_ml += ml_vol_inc;
     
     update_streak_count();
     update_volume_display();
@@ -334,30 +414,41 @@ static void increment_volume() {
 
 // Decrease the current volume by one unit
 static void decrement_volume() {
-    uint16_t volume_decrease = 0;
+    uint16_t oz_vol_dec, ml_vol_dec;
     
     switch (unit) {
         case CUP:
-            volume_decrease = OZ_IN_CUP;
+            oz_vol_dec = OZ_IN_CUP;
+            ml_vol_dec = ML_IN_CUP;
             break;
         case PINT:
-            volume_decrease = OZ_IN_PINT;
+            oz_vol_dec = OZ_IN_PINT;
+            ml_vol_dec = ML_IN_PINT;
             break;
         case QUART:
-            volume_decrease = OZ_IN_QUART;
+            oz_vol_dec = OZ_IN_QUART;
+            ml_vol_dec = ML_IN_QUART;
             break;
         default:
-            volume_decrease = 1;
+            oz_vol_dec = 1;
+            ml_vol_dec = ML_IN_OZ;
             break;
     }
     
-    if (current_oz < volume_decrease) {
-        total_consumed -= current_oz;
-        current_oz = 0;
-    } else {
-        total_consumed -= volume_decrease;
-        current_oz -= volume_decrease;
+    // maybe not needed
+    switch (unit_system) {
+        case CUSTOMARY:
+            (current_oz < oz_vol_dec) ? (total_consumed -= current_oz) : (total_consumed -= oz_vol_dec);
+            break;
+        case METRIC:
+            (current_ml < ml_vol_dec) ? (total_consumed -= current_ml/EXACT_ML_IN_OZ) : (total_consumed -= ml_vol_dec/EXACT_ML_IN_OZ);
+            break;
+        default:
+            break;
     }
+
+    (current_oz < oz_vol_dec) ? (current_oz = 0) : (current_oz -= oz_vol_dec);
+    (current_ml < ml_vol_dec) ? (current_ml = 0) : (current_ml -= ml_vol_dec);
     
     update_streak_count();
     update_volume_display();
@@ -368,20 +459,22 @@ static void decrement_volume() {
 }
 
 static void update_streak_count() {
-    uint16_t goal_oz = OZ_IN_GAL * get_goal_scale();
+    // Restrict the max volumes to the goal volumes
+    if (current_oz >= get_goal_vol(CUSTOMARY)) current_oz = get_goal_vol(CUSTOMARY);
+    if (current_ml >= get_goal_vol(METRIC)) current_ml = get_goal_vol(METRIC);
+
+    uint16_t goal_vol = get_goal_vol(unit_system);
+    uint16_t current_vol = (unit_system == CUSTOMARY) ? current_oz : current_ml;
     time_t today = get_todays_date();
     
-    if (current_oz >= goal_oz) {
-        // Restrict the max ounces to the goal ounces
-        current_oz = goal_oz;
-        
+    if (current_vol >= goal_vol) {
         // If the last streak date is not today's date, then set that date to
         // today's date and increment the streak count.
         if (!are_dates_equal(last_streak_date, today)) {
             last_streak_date = today;
             streak_count++;
         }
-    } else if (current_oz < goal_oz && are_dates_equal(last_streak_date, today)) {
+    } else if (current_vol < goal_vol && are_dates_equal(last_streak_date, today)) {
         // If the last streak date is today's date, since the goal is now no longer
         // met, set the last streak date to the previous date and decrement the
         // streak count.
@@ -525,6 +618,10 @@ static void schedule_reminder_if_needed() {
             // Auto reminders based on how many hours are left in the day and 
             // how much you still need to drink
             hours = hours_left_in_day() / (get_unit_in_gal() * get_goal_scale() - calc_current_volume());
+            // If using the metric unit system, scale the amount by drinking unit
+            if (unit_system == METRIC) {
+                hours *= get_ml_in(unit);
+            }
         } else {
             hours = inactivity_reminder_hours - 1;
         }
@@ -602,6 +699,7 @@ static void app_exit_callback() {
 
 static void load_persistent_storage() {
     current_oz = persist_exists(CURRENT_OZ_KEY) ? persist_read_int(CURRENT_OZ_KEY) : 0;
+    current_ml = persist_exists(CURRENT_ML_KEY) ? persist_read_int(CURRENT_ML_KEY) : 0;
     start_of_day = persist_exists(SOD_KEY) ? persist_read_int(SOD_KEY) : 9;
     end_of_day = persist_exists(EOD_KEY) ? persist_read_int(EOD_KEY) : 0;
     inactivity_reminder_hours = persist_exists(REMINDER_KEY) ? persist_read_int(REMINDER_KEY) : 0;
@@ -618,6 +716,7 @@ static void load_persistent_storage() {
 
 static void save_persistent_storage() {
     persist_write_int(CURRENT_OZ_KEY, current_oz);
+    persist_write_int(CURRENT_ML_KEY, current_ml);
     persist_write_int(SOD_KEY, start_of_day);
     persist_write_int(EOD_KEY, end_of_day);
     persist_write_int(REMINDER_KEY, inactivity_reminder_hours);

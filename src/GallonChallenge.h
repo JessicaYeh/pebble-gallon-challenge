@@ -9,6 +9,7 @@
 // Keys for saving current day's water volume intake
 #define CURRENT_DATE_KEY 1002
 #define CURRENT_OZ_KEY 1003
+#define CURRENT_ML_KEY 1013
 // Key for saving display unit type
 #define UNIT_KEY 1004
 // Key for saving the type of unit system
@@ -35,6 +36,7 @@
 #define OZ_IN_PINT 16
 #define OZ_IN_QUART 32
 #define OZ_IN_GAL 128
+#define EXACT_ML_IN_OZ 29.5735
 #define ML_IN_OZ 50 // approx
 #define ML_IN_CUP 250 // approx
 #define ML_IN_PINT 500 // approx
@@ -61,8 +63,8 @@ typedef enum {
     METRIC
 } UnitSystem;
 
-static uint16_t half_gallon_height(float vol);
-static uint16_t gallon_height(float vol);
+static uint16_t half_gallon_height(float v);
+static uint16_t gallon_height(float v);
 static uint16_t container_height(float vol);
 static const char* unit_system_to_string(UnitSystem us);
 static const char* unit_to_string(Unit u);
@@ -78,7 +80,9 @@ static float hours_left_in_day();
 static bool reset_current_date_and_volume_if_needed();
 static uint16_t calc_current_volume();
 static uint16_t get_unit_in_gal();
+static uint16_t get_ml_in(Unit u);
 static float get_goal_scale();
+static uint16_t get_goal_vol(UnitSystem us);
 static void set_image_for_goal();
 static void update_volume_display();
 static void update_streak_display();
