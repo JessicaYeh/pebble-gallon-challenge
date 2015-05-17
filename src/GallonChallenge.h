@@ -45,6 +45,7 @@
 #define CUP_IN_GAL 16
 #define PINT_IN_GAL 8
 #define QUART_IN_GAL 4
+#define ML_IN_L 1000
 
 #define SEC_IN_HOUR 3600
 #define SEC_IN_DAY 86400

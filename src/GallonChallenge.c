@@ -1075,10 +1075,19 @@ static void profile_menu_draw_row_callback(GContext* ctx, const Layer *cell_laye
             // Use the row to specify which item we'll draw
             switch (cell_index->row) {
                 case 0:
-                    if (total_consumed == OZ_IN_GAL) {
-                        snprintf(buffer, sizeof(buffer), "1.0 Gallon");
+                    if (unit_system == CUSTOMARY) {
+                        if (total_consumed == OZ_IN_GAL) {
+                            snprintf(buffer, sizeof(buffer), "1.0 Gallon");
+                        } else {
+                            snprintf(buffer, sizeof(buffer), "%u.%01u Gallons", (int)(double)total_consumed/OZ_IN_GAL, (int)((double)total_consumed/OZ_IN_GAL*10)%10);
+                        }
                     } else {
-                        snprintf(buffer, sizeof(buffer), "%u.%01u Gallons", (int)(double)total_consumed/OZ_IN_GAL, (int)((double)total_consumed/OZ_IN_GAL*10)%10);
+                        int total_consumed_ml = total_consumed*EXACT_ML_IN_OZ;
+                        if (total_consumed_ml == ML_IN_L) {
+                            snprintf(buffer, sizeof(buffer), "1.0 Liter");
+                        } else {
+                            snprintf(buffer, sizeof(buffer), "%u.%01u Liters", (int)(double)total_consumed_ml/ML_IN_L, (int)((double)total_consumed_ml/ML_IN_L*10)%10);
+                        }
                     }
                     menu_cell_basic_draw(ctx, cell_layer, "Total Consumed", buffer, NULL);
                     break;
