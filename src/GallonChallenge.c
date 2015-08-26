@@ -335,8 +335,11 @@ static void update_volume_display() {
     
     uint16_t numerator = calc_current_volume();
     uint16_t denominator = get_unit_in_gal() * get_goal_scale();
+
+    // Ounces needs to be abbreviated to not be cut off
     const char* unit_string = unit_to_string(unit);
     if (strcmp(unit_string, "Ounces") == 0) unit_string = "Oz";
+
     snprintf(body_text, sizeof(body_text), "%u/%u %s", numerator, denominator, 
         (unit_system == CUSTOMARY) ? unit_string : "mL");
     text_layer_set_text(text_layer, body_text);
@@ -747,7 +750,7 @@ static void window_load(Window *window) {
     
     const int16_t width = bounds.size.w - ACTION_BAR_WIDTH - 7;
     
-    gallon_filled_layer = bitmap_layer_create(GRect(0, 30, 124, 104));
+    gallon_filled_layer = bitmap_layer_create(GRect(0, 30, 124, 92));
     layer_add_child(window_layer, bitmap_layer_get_layer(gallon_filled_layer));
     
     streak_text_layer = text_layer_create(GRect(4, 0, width, 60));
@@ -762,16 +765,16 @@ static void window_load(Window *window) {
     text_layer_set_background_color(text_layer, GColorClear);
     layer_add_child(window_layer, text_layer_get_layer(text_layer));
     
-    white_layer = text_layer_create(GRect(0, 30, 124, 104));
+    white_layer = text_layer_create(GRect(0, 30, 124, 92));
     text_layer_set_background_color(white_layer, GColorWhite);
     layer_add_child(window_layer, text_layer_get_layer(white_layer));
     
-    gallon_layer = bitmap_layer_create(GRect(0, 30, 124, 104));
+    gallon_layer = bitmap_layer_create(GRect(0, 30, 124, 92));
     bitmap_layer_set_background_color(gallon_layer, GColorClear);
     bitmap_layer_set_compositing_mode(gallon_layer, GCompOpClear);
     layer_add_child(window_layer, bitmap_layer_get_layer(gallon_layer));
     
-    star_layer = bitmap_layer_create(GRect(48, 79, 28, 26));
+    star_layer = bitmap_layer_create(GRect(48, 73, 28, 26));
     bitmap_layer_set_bitmap(star_layer, star);
     layer_add_child(window_layer, bitmap_layer_get_layer(star_layer));
 
