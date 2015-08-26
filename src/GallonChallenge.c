@@ -335,8 +335,10 @@ static void update_volume_display() {
     
     uint16_t numerator = calc_current_volume();
     uint16_t denominator = get_unit_in_gal() * get_goal_scale();
+    const char* unit_string = unit_to_string(unit);
+    if (strcmp(unit_string, "Ounces") == 0) unit_string = "Oz";
     snprintf(body_text, sizeof(body_text), "%u/%u %s", numerator, denominator, 
-        (unit_system == CUSTOMARY) ? unit_to_string(unit) : "mL");
+        (unit_system == CUSTOMARY) ? unit_string : "mL");
     text_layer_set_text(text_layer, body_text);
     
     uint16_t height = container_height((unit_system == CUSTOMARY) ? current_oz : current_ml);
@@ -745,19 +747,20 @@ static void window_load(Window *window) {
     
     const int16_t width = bounds.size.w - ACTION_BAR_WIDTH - 7;
     
+    gallon_filled_layer = bitmap_layer_create(GRect(0, 30, 124, 104));
+    layer_add_child(window_layer, bitmap_layer_get_layer(gallon_filled_layer));
+    
     streak_text_layer = text_layer_create(GRect(4, 0, width, 60));
     text_layer_set_font(streak_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
     text_layer_set_text_alignment(streak_text_layer, GTextAlignmentCenter);
     text_layer_set_background_color(streak_text_layer, GColorClear);
     layer_add_child(window_layer, text_layer_get_layer(streak_text_layer));
     
-    text_layer = text_layer_create(GRect(4, 134, width, 20));
+    text_layer = text_layer_create(GRect(4, 116, width, 38));
+    text_layer_set_font(text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
     text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
     text_layer_set_background_color(text_layer, GColorClear);
     layer_add_child(window_layer, text_layer_get_layer(text_layer));
-    
-    gallon_filled_layer = bitmap_layer_create(GRect(0, 30, 124, 104));
-    layer_add_child(window_layer, bitmap_layer_get_layer(gallon_filled_layer));
     
     white_layer = text_layer_create(GRect(0, 30, 124, 104));
     text_layer_set_background_color(white_layer, GColorWhite);
