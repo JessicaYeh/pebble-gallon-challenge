@@ -774,7 +774,7 @@ static void window_load(Window *window) {
     bitmap_layer_set_compositing_mode(gallon_layer, GCompOpClear);
     layer_add_child(window_layer, bitmap_layer_get_layer(gallon_layer));
     
-    star_layer = bitmap_layer_create(GRect(48, 73, 28, 26));
+    star_layer = bitmap_layer_create(GRect(48, 73, 26, 24));
     bitmap_layer_set_bitmap(star_layer, star);
     layer_add_child(window_layer, bitmap_layer_get_layer(star_layer));
 
