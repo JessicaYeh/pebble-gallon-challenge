@@ -27,17 +27,17 @@ static bool launched = false;
 
 static uint16_t half_gallon_height(float v) {
     if (unit_system == CUSTOMARY) {
-        return -4.044923*10e-7*v*v*v*v + 2.648887*10e-5*v*v*v - 2.999254*10e-4*v*v - 1.267036*v + 92.27357;
+        return -2.648947948*10e-7*v*v*v*v + 1.57399393*10e-5*v*v*v - 3.197706522*10e-5*v*v - 1.227965142*v + 84.21612388;
     } else {
-        return -4.24140902*10e-13*v*v*v*v + 8.67987446*10e-10*v*v*v - 3.071236265*10e-7*v*v - 4.054516321*10e-3*v + 92.27356825;
+        return -2.777623239*10e-13*v*v*v*v + 5.157663293*10e-10*v*v*v - 3.27445129*10e-8*v*v - 3.929488456*10e-3*v + 84.21612388;
     }
 }
 
 static uint16_t gallon_height(float v) {
     if (unit_system == CUSTOMARY) {
-        return -1.148968*10e-8*v*v*v*v - 3.903847*10e-7*v*v*v + 2.392628*10e-4*v*v - 0.6883706*v + 90.78948;
+        return -1.308363868*10e-8*v*v*v*v + 3.373611245*10e-7*v*v*v + 1.708355542*10e-4*v*v - 6.136166056*10e-2*v + 81.11469866;
     } else {
-        return -1.204780775*10e-14*v*v*v*v - 1.279212557*10e-11*v*v*v + 2.450050752*10e-7*v*v - 2.202785976*10e-3*v + 90.78948058;
+        return -1.371918968*10e-14*v*v*v*v + 1.105465059*10e-11*v*v*v + 1.749356045*10e-7*v*v - 1.963573136*10e-3*v + 81.11469866;
     }
 }
 
@@ -749,21 +749,9 @@ static void window_load(Window *window) {
     GRect bounds = layer_get_bounds(window_layer);
     
     const int16_t width = bounds.size.w - ACTION_BAR_WIDTH - 7;
-    
+
     gallon_filled_layer = bitmap_layer_create(GRect(0, 30, 124, 92));
     layer_add_child(window_layer, bitmap_layer_get_layer(gallon_filled_layer));
-    
-    streak_text_layer = text_layer_create(GRect(4, 0, width, 60));
-    text_layer_set_font(streak_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-    text_layer_set_text_alignment(streak_text_layer, GTextAlignmentCenter);
-    text_layer_set_background_color(streak_text_layer, GColorClear);
-    layer_add_child(window_layer, text_layer_get_layer(streak_text_layer));
-    
-    text_layer = text_layer_create(GRect(4, 116, width, 38));
-    text_layer_set_font(text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-    text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
-    text_layer_set_background_color(text_layer, GColorClear);
-    layer_add_child(window_layer, text_layer_get_layer(text_layer));
     
     white_layer = text_layer_create(GRect(0, 30, 124, 92));
     text_layer_set_background_color(white_layer, GColorWhite);
@@ -773,6 +761,18 @@ static void window_load(Window *window) {
     bitmap_layer_set_background_color(gallon_layer, GColorClear);
     bitmap_layer_set_compositing_mode(gallon_layer, GCompOpClear);
     layer_add_child(window_layer, bitmap_layer_get_layer(gallon_layer));
+    
+    streak_text_layer = text_layer_create(GRect(4, 0, width, 60));
+    text_layer_set_font(streak_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+    text_layer_set_text_alignment(streak_text_layer, GTextAlignmentCenter);
+    text_layer_set_background_color(streak_text_layer, GColorClear);
+    layer_add_child(window_layer, text_layer_get_layer(streak_text_layer));
+    
+    text_layer = text_layer_create(GRect(4, 116, width, 60));
+    text_layer_set_font(text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+    text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
+    text_layer_set_background_color(text_layer, GColorClear);
+    layer_add_child(window_layer, text_layer_get_layer(text_layer));
     
     star_layer = bitmap_layer_create(GRect(48, 73, 26, 24));
     bitmap_layer_set_bitmap(star_layer, star);
