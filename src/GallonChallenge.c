@@ -24,6 +24,8 @@ static AppTimer *quit_timer, *reset_reminder_timer, *remove_notify_timer;
 
 static bool launched = false;
 
+static uint16_t width, x_shift, height, y_shift;
+
 
 static uint16_t half_gallon_height(float v) {
     if (unit_system == CUSTOMARY) {
@@ -345,7 +347,7 @@ static void update_volume_display() {
     text_layer_set_text(text_layer, body_text);
     
     uint16_t height = container_height((unit_system == CUSTOMARY) ? current_oz : current_ml);
-    layer_set_frame(text_layer_get_layer(white_layer), GRect(0, 37, 124, height));
+    layer_set_frame(text_layer_get_layer(white_layer), GRect(x_shift, 33 + y_shift, width, height));
 
     // Only show the star if the goal is met
     bool is_star_visible = !layer_get_hidden(bitmap_layer_get_layer(star_layer));
@@ -748,37 +750,40 @@ static void window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
     
-    const int16_t width = bounds.size.w - ACTION_BAR_WIDTH - 7;
+    width = bounds.size.w - ACTION_BAR_WIDTH - 7;
+    x_shift = (width - 114) / 2;
+    height = bounds.size.h;
+    y_shift = (height - 152) / 2;
 
-    gallon_filled_layer = bitmap_layer_create(GRect(0, 30, 124, 92));
+    gallon_filled_layer = bitmap_layer_create(GRect(x_shift, 26 + y_shift, 114, 92));
     layer_add_child(window_layer, bitmap_layer_get_layer(gallon_filled_layer));
     
-    white_layer = text_layer_create(GRect(0, 30, 124, 92));
+    white_layer = text_layer_create(GRect(x_shift, 26 + y_shift, 114, 92));
     text_layer_set_background_color(white_layer, GColorWhite);
     layer_add_child(window_layer, text_layer_get_layer(white_layer));
     
-    gallon_layer = bitmap_layer_create(GRect(0, 30, 124, 92));
+    gallon_layer = bitmap_layer_create(GRect(x_shift, 26 + y_shift, 114, 92));
     bitmap_layer_set_background_color(gallon_layer, GColorClear);
     bitmap_layer_set_compositing_mode(gallon_layer, GCompOpClear);
     layer_add_child(window_layer, bitmap_layer_get_layer(gallon_layer));
     
-    streak_text_layer = text_layer_create(GRect(4, 0, width, 60));
-    text_layer_set_font(streak_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+    streak_text_layer = text_layer_create(GRect(4, y_shift, width, 60));
+    text_layer_set_font(streak_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
     text_layer_set_text_alignment(streak_text_layer, GTextAlignmentCenter);
     text_layer_set_background_color(streak_text_layer, GColorClear);
     layer_add_child(window_layer, text_layer_get_layer(streak_text_layer));
     
-    text_layer = text_layer_create(GRect(4, 116, width, 60));
+    text_layer = text_layer_create(GRect(4, 116 + y_shift, width, 60));
     text_layer_set_font(text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
     text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
     text_layer_set_background_color(text_layer, GColorClear);
     layer_add_child(window_layer, text_layer_get_layer(text_layer));
-    
-    star_layer = bitmap_layer_create(GRect(48, 73, 26, 24));
+
+    star_layer = bitmap_layer_create(GRect(width/2-13, 69 + y_shift, 26, 24));
     bitmap_layer_set_bitmap(star_layer, star);
     layer_add_child(window_layer, bitmap_layer_get_layer(star_layer));
 
-    notify_text_layer = text_layer_create(GRect(0, 63, 124, 38));
+    notify_text_layer = text_layer_create(GRect(x_shift, 59 + y_shift, width, 38));
     text_layer_set_font(notify_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
     text_layer_set_text_alignment(notify_text_layer, GTextAlignmentCenter);
     text_layer_set_background_color(notify_text_layer, GColorWhite);
