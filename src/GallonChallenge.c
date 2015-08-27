@@ -750,7 +750,7 @@ static void window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
     
-    width = bounds.size.w - ACTION_BAR_WIDTH - 7;
+    width = bounds.size.w - ACTION_BAR_WIDTH;
     x_shift = (width - 114) / 2;
     height = bounds.size.h;
     y_shift = (height - 152) / 2;
@@ -767,13 +767,13 @@ static void window_load(Window *window) {
     bitmap_layer_set_compositing_mode(gallon_layer, GCompOpClear);
     layer_add_child(window_layer, bitmap_layer_get_layer(gallon_layer));
     
-    streak_text_layer = text_layer_create(GRect(4, y_shift, width, 60));
+    streak_text_layer = text_layer_create(GRect(0, y_shift, width, 60));
     text_layer_set_font(streak_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
     text_layer_set_text_alignment(streak_text_layer, GTextAlignmentCenter);
     text_layer_set_background_color(streak_text_layer, GColorClear);
     layer_add_child(window_layer, text_layer_get_layer(streak_text_layer));
     
-    text_layer = text_layer_create(GRect(4, 116 + y_shift, width, 60));
+    text_layer = text_layer_create(GRect(0, 116 + y_shift, width, 60));
     text_layer_set_font(text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
     text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
     text_layer_set_background_color(text_layer, GColorClear);
@@ -783,7 +783,7 @@ static void window_load(Window *window) {
     bitmap_layer_set_bitmap(star_layer, star);
     layer_add_child(window_layer, bitmap_layer_get_layer(star_layer));
 
-    notify_text_layer = text_layer_create(GRect(x_shift, 59 + y_shift, width, 38));
+    notify_text_layer = text_layer_create(GRect(0, 59 + y_shift, width, 38));
     text_layer_set_font(notify_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
     text_layer_set_text_alignment(notify_text_layer, GTextAlignmentCenter);
     text_layer_set_background_color(notify_text_layer, GColorWhite);
