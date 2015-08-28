@@ -101,7 +101,6 @@ static void up_click_handler(ClickRecognizerRef recognizer, void *context);
 static void down_click_handler(ClickRecognizerRef recognizer, void *context);
 static void click_config_provider(void *context);
 
-
 static void CDU_select_click_handler(ClickRecognizerRef recognizer, void *context);
 static void CDU_up_click_handler(ClickRecognizerRef recognizer, void *context);
 static void CDU_down_click_handler(ClickRecognizerRef recognizer, void *context);

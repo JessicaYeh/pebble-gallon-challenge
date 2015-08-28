@@ -339,7 +339,7 @@ static void update_volume_display() {
 
     // Ounces needs to be abbreviated to not be cut off
     const char* unit_string = unit_to_string(unit);
-    if (strcmp(unit_string, "Ounces") == 0) unit_string = "Oz";
+    if (strcmp(unit_string, "Ounces") == 0) unit_string = "oz";
 
     snprintf(body_text, sizeof(body_text), "%u/%u %s", numerator, denominator, 
         (unit_system == CUSTOMARY) ? unit_string : "mL");
@@ -536,12 +536,12 @@ static void CDU_select_click_handler(ClickRecognizerRef recognizer, void *contex
 
 static void CDU_up_click_handler(ClickRecognizerRef recognizer, void *context) {
     if (unit_system == CUSTOMARY) {
-        if (temp_cdu_oz < OZ_IN_GAL) {
+        if (temp_cdu_oz < OZ_IN_GAL * get_goal_scale()) {
             temp_cdu_oz++;
             CDU_update_display();
         }
     } else if (unit_system == METRIC) {
-        if (temp_cdu_ml < ML_IN_GAL) {
+        if (temp_cdu_ml < ML_IN_GAL * get_goal_scale()) {
             temp_cdu_ml += 50;
             CDU_update_display();
         }
@@ -574,7 +574,7 @@ static void CDU_update_display() {
 }
 
 static void CDU_click_config_provider(void *context) {
-    const uint16_t repeat_interval_ms = 100;
+    const uint16_t repeat_interval_ms = 50;
     window_single_repeating_click_subscribe(BUTTON_ID_UP, repeat_interval_ms, CDU_up_click_handler);
     window_single_repeating_click_subscribe(BUTTON_ID_DOWN, repeat_interval_ms, CDU_down_click_handler);
     window_single_click_subscribe(BUTTON_ID_SELECT, CDU_select_click_handler);
@@ -1362,6 +1362,12 @@ static void goal_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, 
 
 static void goal_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
     goal = cell_index->row + 4;
+    if (cdu_oz > OZ_IN_GAL * get_goal_scale()) {
+        cdu_oz = OZ_IN_GAL * get_goal_scale();
+    }
+    if (cdu_ml > ML_IN_GAL * get_goal_scale()) {
+        cdu_ml = ML_IN_GAL * get_goal_scale();
+    }
     set_image_for_goal();
     update_streak_count();
     update_volume_display();
@@ -1430,7 +1436,14 @@ static void unit_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, 
     if (cell_index->row != 4) {
         menu_cell_basic_draw(ctx, cell_layer, unit_to_string(cell_index->row), NULL, NULL);
     } else {
-        menu_cell_basic_draw(ctx, cell_layer, "Custom", NULL, NULL);
+        static char custom_subtitle[10];
+        uint16_t cdu = (unit_system == CUSTOMARY) ? cdu_oz : cdu_ml;
+        if (unit_system == CUSTOMARY) {
+            snprintf(custom_subtitle, sizeof(custom_subtitle), "%u oz", cdu);
+        } else {
+            snprintf(custom_subtitle, sizeof(custom_subtitle), "%u mL", cdu);
+        }
+        menu_cell_basic_draw(ctx, cell_layer, "Custom", custom_subtitle, NULL);
     }
 }
 
