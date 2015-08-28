@@ -7,14 +7,14 @@ static Window *window, *custom_drink_unit_window;
 static GBitmap *action_icon_plus, *action_icon_settings, *action_icon_check, *action_icon_minus, *gallon_filled_image, *gallon_image, *star;
 
 static ActionBarLayer *action_bar, *CDU_action_bar;
-static TextLayer *streak_text_layer, *text_layer, *white_layer, *notify_text_layer, *header_text_layer, *drinking_unit_text_layer;
+static TextLayer *streak_text_layer, *text_layer, *white_layer, *notify_text_layer, *CDU_header_text_layer, *CDU_text_layer;
 static BitmapLayer *gallon_filled_layer, *gallon_layer, *star_layer;
 
 static UnitSystem unit_system;
 static Unit goal, unit;
 
 static time_t current_date, last_streak_date, drinking_since;
-static uint16_t current_oz, current_ml, streak_count, start_of_day, end_of_day, inactivity_reminder_hours, longest_streak;
+static uint16_t current_oz, current_ml, streak_count, start_of_day, end_of_day, inactivity_reminder_hours, longest_streak, temp_cdu_oz, temp_cdu_ml, cdu_oz, cdu_ml;
 static uint32_t total_consumed;
 
 static WakeupId wakeup_reminder_id, wakeup_reset_id;
@@ -529,15 +529,48 @@ static void click_config_provider(void *context) {
 }
 
 static void CDU_select_click_handler(ClickRecognizerRef recognizer, void *context) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "CDU_select_click_handler");
+    cdu_oz = temp_cdu_oz;
+    cdu_ml = temp_cdu_ml;
+    window_stack_pop(true);
 }
 
 static void CDU_up_click_handler(ClickRecognizerRef recognizer, void *context) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "CDU_up_click_handler");
+    if (unit_system == CUSTOMARY) {
+        if (temp_cdu_oz < OZ_IN_GAL) {
+            temp_cdu_oz++;
+            CDU_update_display();
+        }
+    } else if (unit_system == METRIC) {
+        if (temp_cdu_ml < ML_IN_GAL) {
+            temp_cdu_ml += 50;
+            CDU_update_display();
+        }
+    }
 }
 
 static void CDU_down_click_handler(ClickRecognizerRef recognizer, void *context) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "CDU_down_click_handler");
+    if (unit_system == CUSTOMARY) {
+        if (temp_cdu_oz > 0) {
+            temp_cdu_oz--;
+            CDU_update_display();
+        }
+    } else if (unit_system == METRIC) {
+        if (temp_cdu_ml > 0) {
+            temp_cdu_ml -= 50;
+            CDU_update_display();
+        }
+    }
+}
+
+static void CDU_update_display() {
+    static char body_text[10];
+    uint16_t cdu = (unit_system == CUSTOMARY) ? temp_cdu_oz : temp_cdu_ml;
+    if (unit_system == CUSTOMARY) {
+        snprintf(body_text, sizeof(body_text), "%u oz", cdu);
+    } else {
+        snprintf(body_text, sizeof(body_text), "%u mL", cdu);
+    }
+    text_layer_set_text(CDU_text_layer, body_text);
 }
 
 static void CDU_click_config_provider(void *context) {
@@ -736,6 +769,8 @@ static void load_persistent_storage() {
     current_date = persist_exists(CURRENT_DATE_KEY) ? persist_read_int(CURRENT_DATE_KEY) : get_todays_date();
     total_consumed = persist_exists(TOTAL_CONSUMED_KEY) ? persist_read_int(TOTAL_CONSUMED_KEY) : 0;
     longest_streak = persist_exists(LONGEST_STREAK_KEY) ? persist_read_int(LONGEST_STREAK_KEY) : 0;
+    cdu_oz = persist_exists(CDU_OZ_KEY) ? persist_read_int(CDU_OZ_KEY) : 8;
+    cdu_ml = persist_exists(CDU_ML_KEY) ? persist_read_int(CDU_ML_KEY) : 250;
     drinking_since = persist_exists(DRINKING_SINCE_KEY) ? persist_read_int(DRINKING_SINCE_KEY) : now();
 }
 
@@ -753,6 +788,8 @@ static void save_persistent_storage() {
     persist_write_int(CURRENT_DATE_KEY, (int)current_date);
     persist_write_int(TOTAL_CONSUMED_KEY, total_consumed);
     persist_write_int(LONGEST_STREAK_KEY, longest_streak);
+    persist_write_int(CDU_OZ_KEY, cdu_oz);
+    persist_write_int(CDU_ML_KEY, cdu_ml);
     persist_write_int(DRINKING_SINCE_KEY, (int)drinking_since);
 }
 
@@ -831,25 +868,27 @@ static void CDU_window_load(Window *window) {
     action_bar_layer_set_icon(CDU_action_bar, BUTTON_ID_DOWN, action_icon_minus);
 
     Layer *window_layer = window_get_root_layer(window);
-    GRect bounds = layer_get_bounds(window_layer);
     
-    header_text_layer = text_layer_create(GRect(4, 0, width, 60));
-    text_layer_set_font(header_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
-    text_layer_set_background_color(header_text_layer, GColorClear);
-    text_layer_set_text(header_text_layer, "Set Custom Drinking Unit");
-    layer_add_child(window_layer, text_layer_get_layer(header_text_layer));
+    CDU_header_text_layer = text_layer_create(GRect(4, 0, width, 60));
+    text_layer_set_font(CDU_header_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
+    text_layer_set_background_color(CDU_header_text_layer, GColorClear);
+    text_layer_set_text(CDU_header_text_layer, "Set Custom Drinking Unit");
+    layer_add_child(window_layer, text_layer_get_layer(CDU_header_text_layer));
     
-    drinking_unit_text_layer = text_layer_create(GRect(4, 60, width, 60));
-    text_layer_set_font(drinking_unit_text_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
-    text_layer_set_background_color(drinking_unit_text_layer, GColorClear);
-    text_layer_set_text(drinking_unit_text_layer, "8 oz");
-    layer_add_child(window_layer, text_layer_get_layer(drinking_unit_text_layer));
+    CDU_text_layer = text_layer_create(GRect(4, 60, width, 60));
+    text_layer_set_font(CDU_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+    text_layer_set_background_color(CDU_text_layer, GColorClear);
+    layer_add_child(window_layer, text_layer_get_layer(CDU_text_layer));
+
+    temp_cdu_oz = cdu_oz;
+    temp_cdu_ml = cdu_ml;
+    CDU_update_display();
 }
 
 static void CDU_window_unload(Window *window) {
     action_bar_layer_destroy(CDU_action_bar);
-    text_layer_destroy(header_text_layer);
-    text_layer_destroy(drinking_unit_text_layer);
+    text_layer_destroy(CDU_header_text_layer);
+    text_layer_destroy(CDU_text_layer);
 }
 
 static void init(void) {

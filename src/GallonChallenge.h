@@ -14,6 +14,9 @@
 #define UNIT_KEY 1004
 // Key for saving the type of unit system
 #define UNIT_SYSTEM_KEY 1011
+// Keys for saving the custom drinking unit in oz/ml
+#define CDU_OZ_KEY 1014
+#define CDU_ML_KEY 1015
 // Key for saving goal unit type
 #define GOAL_KEY 1005
 // Key for saving end of day
@@ -98,6 +101,13 @@ static void up_click_handler(ClickRecognizerRef recognizer, void *context);
 static void down_click_handler(ClickRecognizerRef recognizer, void *context);
 static void click_config_provider(void *context);
 
+
+static void CDU_select_click_handler(ClickRecognizerRef recognizer, void *context);
+static void CDU_up_click_handler(ClickRecognizerRef recognizer, void *context);
+static void CDU_down_click_handler(ClickRecognizerRef recognizer, void *context);
+static void CDU_update_display();
+static void CDU_click_config_provider(void *context);
+
 static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed);
 static void wakeup_handler(WakeupId id, int32_t reason);
 static void reset_reminder();
@@ -110,6 +120,10 @@ static void save_persistent_storage();
 
 static void window_load(Window *window);
 static void window_unload(Window *window);
+
+static void CDU_window_load(Window *window);
+static void CDU_window_unload(Window *window);
+
 static void init(void);
 static void deinit(void);
 
