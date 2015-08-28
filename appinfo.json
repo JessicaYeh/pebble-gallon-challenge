@@ -3,8 +3,7 @@
   "shortName": "Gallon Challenge",
   "longName": "Gallon Challenge",
   "companyName": "Jessica Yeh",
-  "versionCode": 1,
-  "versionLabel": "2.1",
+  "versionLabel": "2.2",
   "watchapp": {
     "watchface": false
   },

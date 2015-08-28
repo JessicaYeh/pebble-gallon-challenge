@@ -588,12 +588,12 @@ static void CDU_up_click_handler(ClickRecognizerRef recognizer, void *context) {
 
 static void CDU_down_click_handler(ClickRecognizerRef recognizer, void *context) {
     if (unit_system == CUSTOMARY) {
-        if (temp_cdu_oz > 0) {
+        if (temp_cdu_oz > 1) {
             temp_cdu_oz--;
             CDU_update_display();
         }
     } else if (unit_system == METRIC) {
-        if (temp_cdu_ml > 0) {
+        if (temp_cdu_ml > 50) {
             temp_cdu_ml -= 50;
             CDU_update_display();
         }
