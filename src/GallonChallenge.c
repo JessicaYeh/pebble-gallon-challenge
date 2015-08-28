@@ -80,6 +80,7 @@ static const char* unit_to_string(Unit u) {
                 case QUART:       return "Quarts";
                 case HALF_GALLON: return "Half Gallon";
                 case GALLON:      return "One Gallon";
+                case CUSTOM:      return "Ounces";
                 default:          return "";
             }
         case METRIC:
@@ -90,8 +91,23 @@ static const char* unit_to_string(Unit u) {
                 case QUART:       return "1 Liter";
                 case HALF_GALLON: return "2 Liters";
                 case GALLON:      return "4 Liters";
+                case CUSTOM:      return custom_unit_to_string();
                 default:          return "";
             }
+        default:
+            return "";
+    }
+}
+
+static const char* custom_unit_to_string() {
+    static char string[10];
+    switch (unit_system) {
+        case CUSTOMARY:
+            snprintf(string, sizeof(string), "%u oz", cdu_oz);
+            return string;
+        case METRIC:
+            snprintf(string, sizeof(string), "%u mL", cdu_ml);
+            return string;
         default:
             return "";
     }
@@ -379,6 +395,10 @@ static void increment_volume() {
             oz_vol_inc = OZ_IN_QUART;
             ml_vol_inc = ML_IN_QUART;
             break;
+        case CUSTOM:
+            oz_vol_inc = cdu_oz;
+            ml_vol_inc = cdu_ml;
+            break;
         default:
             oz_vol_inc = 1;
             ml_vol_inc = ML_IN_OZ;
@@ -435,6 +455,10 @@ static void decrement_volume() {
         case QUART:
             oz_vol_dec = OZ_IN_QUART;
             ml_vol_dec = ML_IN_QUART;
+            break;
+        case CUSTOM:
+            oz_vol_dec = cdu_oz;
+            ml_vol_dec = cdu_ml;
             break;
         default:
             oz_vol_dec = 1;
@@ -529,6 +553,7 @@ static void click_config_provider(void *context) {
 }
 
 static void CDU_select_click_handler(ClickRecognizerRef recognizer, void *context) {
+    unit = CUSTOM;
     cdu_oz = temp_cdu_oz;
     cdu_ml = temp_cdu_ml;
     update_volume_display();
@@ -1057,7 +1082,7 @@ static void settings_menu_draw_row_callback(GContext* ctx, const Layer *cell_lay
                     menu_cell_basic_draw(ctx, cell_layer, "Daily Goal", unit_to_string(goal), NULL);
                     break;
                 case 2:
-                    menu_cell_basic_draw(ctx, cell_layer, "Drinking Unit", unit_to_string(unit), NULL);
+                    menu_cell_basic_draw(ctx, cell_layer, "Drinking Unit", (unit == CUSTOM) ? custom_unit_to_string() : unit_to_string(unit), NULL);
                     break;
                 case 3:
                     menu_cell_basic_draw(ctx, cell_layer, "Start of Day", hour_to_string(start_of_day), NULL);
@@ -1439,19 +1464,13 @@ static void unit_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, 
     if (cell_index->row != 4) {
         menu_cell_basic_draw(ctx, cell_layer, unit_to_string(cell_index->row), NULL, NULL);
     } else {
-        static char custom_subtitle[10];
-        uint16_t cdu = (unit_system == CUSTOMARY) ? cdu_oz : cdu_ml;
-        if (unit_system == CUSTOMARY) {
-            snprintf(custom_subtitle, sizeof(custom_subtitle), "%u oz", cdu);
-        } else {
-            snprintf(custom_subtitle, sizeof(custom_subtitle), "%u mL", cdu);
-        }
-        menu_cell_basic_draw(ctx, cell_layer, "Custom", custom_subtitle, NULL);
+        menu_cell_basic_draw(ctx, cell_layer, "Custom", custom_unit_to_string(), NULL);
     }
 }
 
 static void unit_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
     if (cell_index->row != 4) {
+        unit = cell_index->row;
         update_volume_display();
         reset_reminder();
         window_stack_pop(true);
@@ -1464,7 +1483,8 @@ static void unit_menu_show() {
     window_stack_push(unit_menu_window, true);
     
     // Sets the selected unit in the menu
-    menu_layer_set_selected_index(unit_menu_layer, (MenuIndex) { .row = unit, .section = 0 }, MenuRowAlignCenter, false);
+    uint16_t row = (unit == CUSTOM) ? 4 : unit;
+    menu_layer_set_selected_index(unit_menu_layer, (MenuIndex) { .row = row, .section = 0 }, MenuRowAlignCenter, false);
 }
 
 static void unit_menu_window_load(Window *window) {

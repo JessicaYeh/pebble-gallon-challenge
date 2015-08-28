@@ -73,6 +73,7 @@ static uint16_t gallon_height(float v);
 static uint16_t container_height(float vol);
 static const char* unit_system_to_string(UnitSystem us);
 static const char* unit_to_string(Unit u);
+static const char* custom_unit_to_string();
 static const char* hour_to_string(uint16_t hour);
 static const char* reminder_to_string(uint16_t hour);
 static bool are_dates_equal(time_t date1, time_t date2);
