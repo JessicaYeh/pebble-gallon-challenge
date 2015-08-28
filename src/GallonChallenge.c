@@ -531,6 +531,9 @@ static void click_config_provider(void *context) {
 static void CDU_select_click_handler(ClickRecognizerRef recognizer, void *context) {
     cdu_oz = temp_cdu_oz;
     cdu_ml = temp_cdu_ml;
+    update_volume_display();
+    reset_reminder();
+    window_stack_pop(true);
     window_stack_pop(true);
 }
 

@@ -59,7 +59,8 @@ typedef enum {
     PINT,
     QUART,
     HALF_GALLON,
-    GALLON
+    GALLON,
+    CUSTOM
 } Unit;
 
 typedef enum {
