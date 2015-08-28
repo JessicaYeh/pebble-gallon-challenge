@@ -404,6 +404,10 @@ static void increment_volume() {
             ml_vol_inc = ML_IN_OZ;
             break;
     }
+
+    // Make the conversion more exact
+    oz_vol_inc = (unit_system == CUSTOMARY) ? oz_vol_inc : (int)((float)ml_vol_inc / EXACT_ML_IN_OZ);
+    ml_vol_inc = (unit_system == METRIC) ? ml_vol_inc : (int)((float)oz_vol_inc * EXACT_ML_IN_OZ);
     
     // maybe not needed
     uint16_t oz_in_goal, ml_in_goal;
@@ -465,6 +469,10 @@ static void decrement_volume() {
             ml_vol_dec = ML_IN_OZ;
             break;
     }
+
+    // Make the conversion more exact
+    oz_vol_dec = (unit_system == CUSTOMARY) ? oz_vol_dec : (int)((float)ml_vol_dec / EXACT_ML_IN_OZ);
+    ml_vol_dec = (unit_system == METRIC) ? ml_vol_dec : (int)((float)oz_vol_dec * EXACT_ML_IN_OZ);
     
     // maybe not needed
     switch (unit_system) {
