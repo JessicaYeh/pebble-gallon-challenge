@@ -85,7 +85,7 @@ static time_t get_next_reset_time();
 static float hours_left_in_day();
 static bool reset_current_date_and_volume_if_needed();
 static uint16_t calc_current_volume();
-static uint16_t get_unit_in_gal();
+static uint16_t get_unit_in_gal(bool forAutoReminder);
 static uint16_t get_ml_in(Unit u);
 static float get_goal_scale();
 static uint16_t get_goal_vol(UnitSystem us);

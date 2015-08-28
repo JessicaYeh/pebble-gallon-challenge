@@ -284,14 +284,15 @@ static uint16_t calc_current_volume() {
     }
 }
 
-static uint16_t get_unit_in_gal() {
+static uint16_t get_unit_in_gal(bool forAutoReminder) {
     switch (unit_system) {
         case CUSTOMARY:
             switch (unit) {
-                case CUP:   return CUP_IN_GAL;
-                case PINT:  return PINT_IN_GAL;
-                case QUART: return QUART_IN_GAL;
-                default:    return OZ_IN_GAL;
+                case CUP:    return CUP_IN_GAL;
+                case PINT:   return PINT_IN_GAL;
+                case QUART:  return QUART_IN_GAL;
+                case CUSTOM: if (forAutoReminder) return OZ_IN_GAL / cdu_oz;
+                default:     return OZ_IN_GAL;
             }
         case METRIC:
             return ML_IN_GAL;
@@ -308,6 +309,7 @@ static uint16_t get_ml_in(Unit u) {
         case QUART:       return ML_IN_QUART;
         case HALF_GALLON: return ML_IN_GAL * 0.5;
         case GALLON:      return ML_IN_GAL;
+        case CUSTOM:      return ML_IN_GAL / cdu_ml;
         default:          return 0;
     }
 }
@@ -351,7 +353,7 @@ static void update_volume_display() {
     static char body_text[20];
     
     uint16_t numerator = calc_current_volume();
-    uint16_t denominator = get_unit_in_gal() * get_goal_scale();
+    uint16_t denominator = get_unit_in_gal(false) * get_goal_scale();
 
     // Ounces needs to be abbreviated to not be cut off
     const char* unit_string = unit_to_string(unit);
@@ -681,7 +683,7 @@ static void schedule_reminder_if_needed() {
     }
 
     // Goal is met, so don't schedule a reminder
-    if (calc_current_volume() == get_unit_in_gal() * get_goal_scale()) {
+    if (calc_current_volume() == get_unit_in_gal(false) * get_goal_scale()) {
         return;
     }
 
@@ -711,7 +713,7 @@ static void schedule_reminder_if_needed() {
         if (inactivity_reminder_hours == 1) {
             // Auto reminders based on how many hours are left in the day and 
             // how much you still need to drink
-            hours = hours_left_in_day() / (get_unit_in_gal() * get_goal_scale() - calc_current_volume());
+            hours = hours_left_in_day() / (get_unit_in_gal(true) * get_goal_scale() - calc_current_volume());
             // If using the metric unit system, scale the amount by drinking unit
             if (unit_system == METRIC) {
                 hours *= get_ml_in(unit);
