@@ -2,13 +2,12 @@
 #include "PDUtils.h"
 #include "GallonChallenge.h"
 
+static Window *window, *custom_drink_unit_window;
 
-static Window *window;
+static GBitmap *action_icon_plus, *action_icon_settings, *action_icon_check, *action_icon_minus, *gallon_filled_image, *gallon_image, *star;
 
-static GBitmap *action_icon_plus, *action_icon_settings, *action_icon_minus, *gallon_filled_image, *gallon_image, *star;
-
-static ActionBarLayer *action_bar;
-static TextLayer *streak_text_layer, *text_layer, *white_layer, *notify_text_layer;
+static ActionBarLayer *action_bar, *CDU_action_bar;
+static TextLayer *streak_text_layer, *text_layer, *white_layer, *notify_text_layer, *header_text_layer, *drinking_unit_text_layer;
 static BitmapLayer *gallon_filled_layer, *gallon_layer, *star_layer;
 
 static UnitSystem unit_system;
@@ -526,8 +525,26 @@ static void click_config_provider(void *context) {
     const uint16_t repeat_interval_ms = 100;
     window_single_repeating_click_subscribe(BUTTON_ID_UP, repeat_interval_ms, up_click_handler);
     window_single_repeating_click_subscribe(BUTTON_ID_DOWN, repeat_interval_ms, down_click_handler);
-    
     window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
+}
+
+static void CDU_select_click_handler(ClickRecognizerRef recognizer, void *context) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "CDU_select_click_handler");
+}
+
+static void CDU_up_click_handler(ClickRecognizerRef recognizer, void *context) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "CDU_up_click_handler");
+}
+
+static void CDU_down_click_handler(ClickRecognizerRef recognizer, void *context) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "CDU_down_click_handler");
+}
+
+static void CDU_click_config_provider(void *context) {
+    const uint16_t repeat_interval_ms = 100;
+    window_single_repeating_click_subscribe(BUTTON_ID_UP, repeat_interval_ms, CDU_up_click_handler);
+    window_single_repeating_click_subscribe(BUTTON_ID_DOWN, repeat_interval_ms, CDU_down_click_handler);
+    window_single_click_subscribe(BUTTON_ID_SELECT, CDU_select_click_handler);
 }
 
 static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed) {
@@ -805,12 +822,43 @@ static void window_unload(Window *window) {
     action_bar_layer_destroy(action_bar);
 }
 
+static void CDU_window_load(Window *window) {
+    CDU_action_bar = action_bar_layer_create();
+    action_bar_layer_add_to_window(CDU_action_bar, custom_drink_unit_window);
+    action_bar_layer_set_click_config_provider(CDU_action_bar, CDU_click_config_provider);
+    action_bar_layer_set_icon(CDU_action_bar, BUTTON_ID_UP, action_icon_plus);
+    action_bar_layer_set_icon(CDU_action_bar, BUTTON_ID_SELECT, action_icon_check);
+    action_bar_layer_set_icon(CDU_action_bar, BUTTON_ID_DOWN, action_icon_minus);
+
+    Layer *window_layer = window_get_root_layer(window);
+    GRect bounds = layer_get_bounds(window_layer);
+    
+    header_text_layer = text_layer_create(GRect(4, 0, width, 60));
+    text_layer_set_font(header_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
+    text_layer_set_background_color(header_text_layer, GColorClear);
+    text_layer_set_text(header_text_layer, "Set Custom Drinking Unit");
+    layer_add_child(window_layer, text_layer_get_layer(header_text_layer));
+    
+    drinking_unit_text_layer = text_layer_create(GRect(4, 60, width, 60));
+    text_layer_set_font(drinking_unit_text_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
+    text_layer_set_background_color(drinking_unit_text_layer, GColorClear);
+    text_layer_set_text(drinking_unit_text_layer, "8 oz");
+    layer_add_child(window_layer, text_layer_get_layer(drinking_unit_text_layer));
+}
+
+static void CDU_window_unload(Window *window) {
+    action_bar_layer_destroy(CDU_action_bar);
+    text_layer_destroy(header_text_layer);
+    text_layer_destroy(drinking_unit_text_layer);
+}
+
 static void init(void) {
     load_persistent_storage();
     
     action_icon_plus = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_PLUS);
     action_icon_settings = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_SETTINGS);
     action_icon_minus = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_MINUS);
+    action_icon_check = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_CHECK);
     star = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STAR);
 
     window = window_create();
@@ -818,6 +866,13 @@ static void init(void) {
     window_set_window_handlers(window, (WindowHandlers) {
         .load = window_load,
         .unload = window_unload,
+    });
+
+    custom_drink_unit_window = window_create();
+    window_set_click_config_provider(custom_drink_unit_window, CDU_click_config_provider);
+    window_set_window_handlers(custom_drink_unit_window, (WindowHandlers) {
+        .load = CDU_window_load,
+        .unload = CDU_window_unload,
     });
     
     settings_menu_window = window_create();
@@ -882,6 +937,7 @@ static void deinit(void) {
     gbitmap_destroy(action_icon_plus);
     gbitmap_destroy(action_icon_settings);
     gbitmap_destroy(action_icon_minus);
+    gbitmap_destroy(action_icon_check);
     gbitmap_destroy(gallon_filled_image);
     gbitmap_destroy(gallon_image);
     gbitmap_destroy(star);
@@ -1322,7 +1378,7 @@ static uint16_t unit_menu_get_num_sections_callback(MenuLayer *menu_layer, void 
 }
 
 static uint16_t unit_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
-    return 4;
+    return 5;
 }
 
 static int16_t unit_menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
@@ -1332,14 +1388,21 @@ static int16_t unit_menu_get_header_height_callback(MenuLayer *menu_layer, uint1
 
 static void unit_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
     // Use the row to specify which item we'll draw
-    menu_cell_basic_draw(ctx, cell_layer, unit_to_string(cell_index->row), NULL, NULL);
+    if (cell_index->row != 4) {
+        menu_cell_basic_draw(ctx, cell_layer, unit_to_string(cell_index->row), NULL, NULL);
+    } else {
+        menu_cell_basic_draw(ctx, cell_layer, "Custom", NULL, NULL);
+    }
 }
 
 static void unit_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
-    unit = cell_index->row;
-    update_volume_display();
-    reset_reminder();
-    window_stack_pop(true);
+    if (cell_index->row != 4) {
+        update_volume_display();
+        reset_reminder();
+        window_stack_pop(true);
+    } else {
+        window_stack_push(custom_drink_unit_window, true);
+    }
 }
 
 static void unit_menu_show() {

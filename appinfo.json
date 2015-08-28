@@ -36,6 +36,11 @@
       },
       {
         "type": "png",
+        "name": "IMAGE_ACTION_ICON_CHECK",
+        "file": "images/action_icon_check.png"
+      },
+      {
+        "type": "png",
         "name": "IMAGE_GALLON_FILLED",
         "file": "images/gallon_filled.png"
       },
