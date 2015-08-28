@@ -908,7 +908,7 @@ static void CDU_window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
     
     CDU_header_text_layer = text_layer_create(GRect(4, 0, width, 60));
-    text_layer_set_font(CDU_header_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
+    text_layer_set_font(CDU_header_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
     text_layer_set_background_color(CDU_header_text_layer, GColorClear);
     text_layer_set_text(CDU_header_text_layer, "Set Custom Drinking Unit");
     layer_add_child(window_layer, text_layer_get_layer(CDU_header_text_layer));
