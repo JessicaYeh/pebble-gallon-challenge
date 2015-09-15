@@ -64,8 +64,8 @@ static uint16_t container_height(float vol) {
 
 static const char* unit_system_to_string(UnitSystem us) {
     switch (us) {
-        case CUSTOMARY:   return "Customary";
-        case METRIC:      return "Metric";
+        case CUSTOMARY:   return "Customary (Gallons)";
+        case METRIC:      return "Metric (Liters)";
         default:          return "";
     }
 }
