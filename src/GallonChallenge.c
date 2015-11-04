@@ -520,7 +520,9 @@ static void update_streak_count() {
         // met, set the last streak date to the previous date and decrement the
         // streak count.
         last_streak_date = get_yesterdays_date();
-        streak_count--;
+        if (streak_count > 0) {
+            streak_count--;
+        }
     }
     
     update_streak_display();
