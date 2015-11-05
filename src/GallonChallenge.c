@@ -800,7 +800,7 @@ static void load_persistent_storage() {
     current_ml = persist_exists(CURRENT_ML_KEY) ? persist_read_int(CURRENT_ML_KEY) : 0;
     start_of_day = persist_exists(SOD_KEY) ? persist_read_int(SOD_KEY) : 9;
     end_of_day = persist_exists(EOD_KEY) ? persist_read_int(EOD_KEY) : 0;
-    inactivity_reminder_hours = persist_exists(REMINDER_KEY) ? persist_read_int(REMINDER_KEY) : 0;
+    inactivity_reminder_hours = persist_exists(REMINDER_KEY) ? persist_read_int(REMINDER_KEY) : 1;
     unit_system = persist_exists(UNIT_SYSTEM_KEY) ? persist_read_int(UNIT_SYSTEM_KEY) : CUSTOMARY;
     goal = persist_exists(GOAL_KEY) ? persist_read_int(GOAL_KEY) : GALLON;
     unit = persist_exists(UNIT_KEY) ? persist_read_int(UNIT_KEY) : CUP;
