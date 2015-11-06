@@ -160,12 +160,20 @@ static const char* reminder_to_string(uint16_t hour) {
 }
 
 static bool are_dates_equal(time_t date1, time_t date2) {
-    struct tm *old_date = localtime(&date1);
+    #ifdef PBL_SDK_3
+        struct tm *old_date = gmtime(&date1);
+    #else
+        struct tm *old_date = localtime(&date1);
+    #endif
     uint16_t old_mday = old_date->tm_mday;
     uint16_t old_mon = old_date->tm_mon;
     uint16_t old_year = old_date->tm_year;
     
-    struct tm *new_date = localtime(&date2);
+    #ifdef PBL_SDK_3
+        struct tm *new_date = gmtime(&date2);
+    #else
+        struct tm *new_date = localtime(&date2);
+    #endif
     uint16_t new_mday = new_date->tm_mday;
     uint16_t new_mon = new_date->tm_mon;
     uint16_t new_year = new_date->tm_year;
@@ -180,7 +188,11 @@ static bool are_dates_equal(time_t date1, time_t date2) {
 static bool should_vibrate() {
     // Get the current hour
     time_t current_time = now();
-    struct tm *time_struct = localtime(&current_time);
+    #ifdef PBL_SDK_3
+        struct tm *time_struct = gmtime(&current_time);
+    #else
+        struct tm *time_struct = localtime(&current_time);
+    #endif
     uint16_t hour = time_struct->tm_hour;
 
     // Make adjustments to be able to calculate the silent hours
@@ -192,6 +204,8 @@ static bool should_vibrate() {
     if (hour < start_silent) {
         hour += 24;
     }
+    start_silent += get_UTC_offset(NULL);
+    end_silent += get_UTC_offset(NULL);
 
     // Whether the hour is inside the silent hours
     if (hour >= start_silent && hour <= end_silent) {
@@ -200,8 +214,25 @@ static bool should_vibrate() {
     return true;
 }
 
+// Gets the UTC offset of the local time in seconds 
+// (pass in an existing localtime struct tm to save creating another one, or else pass NULL)
+time_t get_UTC_offset(struct tm *t) {
+#ifdef PBL_SDK_3
+  if (t == NULL) {
+    time_t temp;
+    temp = time(NULL);
+    t = localtime(&temp);
+  }
+  
+  return t->tm_gmtoff + ((t->tm_isdst > 0) ? 3600 : 0);
+#else
+  // SDK2 uses localtime instead of UTC for all time functions so always return 0
+  return 0; 
+#endif 
+}
+
 static time_t now() {
-    return time(NULL);
+    return time(NULL) + get_UTC_offset(NULL);
 }
 
 static time_t get_todays_date() {
@@ -223,7 +254,7 @@ static time_t get_next_reset_time() {
 
     // If the reset time is earlier than the current time, add a day to reset time
     time_t reset_time = p_mktime(reset_time_struct);
-    if ((int)reset_time < (int)current_time) {
+    while ((int)reset_time < (int)current_time) {
         reset_time += SEC_IN_DAY;
     }
 
@@ -620,11 +651,11 @@ static void CDU_click_config_provider(void *context) {
     window_single_click_subscribe(BUTTON_ID_SELECT, CDU_select_click_handler);
 }
 
-static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed) {
-    if (tick_time->tm_hour == end_of_day) {
-        reset_current_date_and_volume_if_needed();
-    }
-}
+// static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed) {
+//     if (tick_time->tm_hour == end_of_day) {
+//         reset_current_date_and_volume_if_needed();
+//     }
+// }
 
 static void wakeup_handler(WakeupId id, int32_t reason) {
     if (reason == WAKEUP_REMINDER_REASON) {
@@ -662,6 +693,7 @@ static void wakeup_handler(WakeupId id, int32_t reason) {
             //schedule_reset_if_needed();
             remove_notify_timer = app_timer_register(120000, cancel_app_exit_and_remove_notify_text, NULL);
         }
+        reset_current_date_and_volume_if_needed();
     }
 }
 
@@ -724,9 +756,9 @@ static void schedule_reminder_if_needed() {
             hours = inactivity_reminder_hours - 1;
         }
         if (hours < 0.5) hours = 0.5;
-        time_t future_time = now() + hours * SEC_IN_HOUR;
+        time_t future_time = now() + hours * SEC_IN_HOUR - get_UTC_offset(NULL);
         // Avoid time conflict with reset time
-        if (future_time == get_next_reset_time()) future_time += 0.5 * SEC_IN_HOUR;
+        if (future_time == (get_next_reset_time() - get_UTC_offset(NULL))) future_time += 0.5 * SEC_IN_HOUR;
 
         // Repeatedly try to schedule the wakeup in case of conflicting wakeup times
         wakeup_reminder_id = 0;
@@ -770,7 +802,7 @@ static void schedule_reset_if_needed() {
             wakeup_handler(id, reason);
         }
     } else if (!wakeup_scheduled) {
-        time_t future_time = get_next_reset_time();
+        time_t future_time = get_next_reset_time() - get_UTC_offset(NULL);
 
         // Repeatedly try to schedule the wakeup in case of conflicting wakeup times
         wakeup_reset_id = 0;
@@ -1004,7 +1036,7 @@ static void init(void) {
     
     window_stack_push(window, true);
     
-    tick_timer_service_subscribe(HOUR_UNIT, handle_hour_tick);
+    // tick_timer_service_subscribe(HOUR_UNIT, handle_hour_tick);
     wakeup_service_subscribe(wakeup_handler);
     schedule_reminder_if_needed();
     schedule_reset_if_needed();
