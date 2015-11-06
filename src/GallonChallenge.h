@@ -78,6 +78,7 @@ static const char* hour_to_string(uint16_t hour);
 static const char* reminder_to_string(uint16_t hour);
 static bool are_dates_equal(time_t date1, time_t date2);
 static bool should_vibrate();
+static time_t get_UTC_offset(struct tm *t);
 static time_t now();
 static time_t get_todays_date();
 static time_t get_yesterdays_date();
@@ -109,7 +110,7 @@ static void CDU_down_click_handler(ClickRecognizerRef recognizer, void *context)
 static void CDU_update_display();
 static void CDU_click_config_provider(void *context);
 
-static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed);
+// static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed);
 static void wakeup_handler(WakeupId id, int32_t reason);
 static void reset_reminder();
 static void schedule_reminder_if_needed();

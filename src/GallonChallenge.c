@@ -160,12 +160,20 @@ static const char* reminder_to_string(uint16_t hour) {
 }
 
 static bool are_dates_equal(time_t date1, time_t date2) {
-    struct tm *old_date = localtime(&date1);
+    #ifdef PBL_SDK_3
+        struct tm *old_date = gmtime(&date1);
+    #else
+        struct tm *old_date = localtime(&date1);
+    #endif
     uint16_t old_mday = old_date->tm_mday;
     uint16_t old_mon = old_date->tm_mon;
     uint16_t old_year = old_date->tm_year;
     
-    struct tm *new_date = localtime(&date2);
+    #ifdef PBL_SDK_3
+        struct tm *new_date = gmtime(&date2);
+    #else
+        struct tm *new_date = localtime(&date2);
+    #endif
     uint16_t new_mday = new_date->tm_mday;
     uint16_t new_mon = new_date->tm_mon;
     uint16_t new_year = new_date->tm_year;
@@ -180,7 +188,11 @@ static bool are_dates_equal(time_t date1, time_t date2) {
 static bool should_vibrate() {
     // Get the current hour
     time_t current_time = now();
-    struct tm *time_struct = localtime(&current_time);
+    #ifdef PBL_SDK_3
+        struct tm *time_struct = gmtime(&current_time);
+    #else
+        struct tm *time_struct = localtime(&current_time);
+    #endif
     uint16_t hour = time_struct->tm_hour;
 
     // Make adjustments to be able to calculate the silent hours
@@ -192,6 +204,8 @@ static bool should_vibrate() {
     if (hour < start_silent) {
         hour += 24;
     }
+    start_silent += get_UTC_offset(NULL);
+    end_silent += get_UTC_offset(NULL);
 
     // Whether the hour is inside the silent hours
     if (hour >= start_silent && hour <= end_silent) {
@@ -270,6 +284,9 @@ static bool reset_current_date_and_volume_if_needed() {
 
     time_t today = get_todays_date();
     time_t yesterday = get_yesterdays_date();
+
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Today: %d", (int)today);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Current date: %d", (int)current_date);
     if (!are_dates_equal(current_date, today)) {
         current_date = today;
         current_oz = 0;
@@ -646,11 +663,11 @@ static void CDU_click_config_provider(void *context) {
     window_single_click_subscribe(BUTTON_ID_SELECT, CDU_select_click_handler);
 }
 
-static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed) {
-    if (tick_time->tm_hour == end_of_day) {
-        reset_current_date_and_volume_if_needed();
-    }
-}
+// static void handle_hour_tick(struct tm *tick_time, TimeUnits units_changed) {
+//     if (tick_time->tm_hour == end_of_day) {
+//         reset_current_date_and_volume_if_needed();
+//     }
+// }
 
 static void wakeup_handler(WakeupId id, int32_t reason) {
     if (reason == WAKEUP_REMINDER_REASON) {
@@ -688,6 +705,7 @@ static void wakeup_handler(WakeupId id, int32_t reason) {
             //schedule_reset_if_needed();
             remove_notify_timer = app_timer_register(120000, cancel_app_exit_and_remove_notify_text, NULL);
         }
+        reset_current_date_and_volume_if_needed();
     }
 }
 
@@ -757,7 +775,7 @@ static void schedule_reminder_if_needed() {
             APP_LOG(APP_LOG_LEVEL_DEBUG, "Hours: %d", (int)(hours*100));
         }
         if (hours < 0.5) hours = 0.5;
-        time_t future_time = now() + hours * SEC_IN_HOUR;
+        time_t future_time = now() + hours * SEC_IN_HOUR - get_UTC_offset(NULL);
         // Avoid time conflict with reset time
         if (future_time == (get_next_reset_time() - get_UTC_offset(NULL))) future_time += 0.5 * SEC_IN_HOUR;
 
@@ -771,6 +789,7 @@ static void schedule_reminder_if_needed() {
             }
 
             // Schedule wakeup event and keep the WakeupId in case it needs to be queried
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "Reminder time: %d", (int)(future_time));
             wakeup_reminder_id = wakeup_schedule(future_time, WAKEUP_REMINDER_REASON, false);
             attempts++;
         }
@@ -1038,7 +1057,7 @@ static void init(void) {
     
     window_stack_push(window, true);
     
-    tick_timer_service_subscribe(HOUR_UNIT, handle_hour_tick);
+    // tick_timer_service_subscribe(HOUR_UNIT, handle_hour_tick);
     wakeup_service_subscribe(wakeup_handler);
     schedule_reminder_if_needed();
     schedule_reset_if_needed();
