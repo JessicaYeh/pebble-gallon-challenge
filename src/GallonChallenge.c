@@ -255,9 +255,7 @@ static time_t get_next_reset_time() {
     // If the reset time is earlier than the current time, add a day to reset time
     time_t reset_time = p_mktime(reset_time_struct);
     while ((int)reset_time < (int)current_time) {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Reset time: %d", (int)reset_time);
         reset_time += SEC_IN_DAY;
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Reset time: %d", (int)reset_time);
     }
 
     return reset_time;
@@ -265,16 +263,9 @@ static time_t get_next_reset_time() {
 
 static float hours_left_in_day() {
     time_t current_time = now();
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Current time: %d", (int)current_time);
-
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Next reset time: %d", (int)get_next_reset_time());
     time_t end_of_day_time = get_next_reset_time() - SEC_IN_HOUR * 2;
 
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "End of day time: %d", (int)end_of_day_time);
-
     float hours_left = (end_of_day_time - current_time) / 3600.0;
-
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Hours left: %d", (int)(hours_left*100));
     if (hours_left < 0) hours_left = 0;
     return hours_left;
 }
@@ -284,9 +275,6 @@ static bool reset_current_date_and_volume_if_needed() {
 
     time_t today = get_todays_date();
     time_t yesterday = get_yesterdays_date();
-
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Today: %d", (int)today);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Current date: %d", (int)current_date);
     if (!are_dates_equal(current_date, today)) {
         current_date = today;
         current_oz = 0;
@@ -759,20 +747,13 @@ static void schedule_reminder_if_needed() {
         if (inactivity_reminder_hours == 1) {
             // Auto reminders based on how many hours are left in the day and 
             // how much you still need to drink
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "Hours left in day: %d", (int)(hours_left_in_day()*100));
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "Get unit in gal: %d", get_unit_in_gal(true)*100);
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "Get goal scale: %d", (int)(get_goal_scale()*100));
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "Current volume: %d", calc_current_volume()*100);
             hours = hours_left_in_day() / (get_unit_in_gal(true) * get_goal_scale() - calc_current_volume());
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "Hours: %d", (int)(hours*100));
             // If using the metric unit system, scale the amount by drinking unit
             if (unit_system == METRIC) {
                 hours *= get_ml_in(unit);
             }
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "Hours: %d", (int)(hours*100));
         } else {
             hours = inactivity_reminder_hours - 1;
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "Hours: %d", (int)(hours*100));
         }
         if (hours < 0.5) hours = 0.5;
         time_t future_time = now() + hours * SEC_IN_HOUR - get_UTC_offset(NULL);
@@ -789,7 +770,6 @@ static void schedule_reminder_if_needed() {
             }
 
             // Schedule wakeup event and keep the WakeupId in case it needs to be queried
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "Reminder time: %d", (int)(future_time));
             wakeup_reminder_id = wakeup_schedule(future_time, WAKEUP_REMINDER_REASON, false);
             attempts++;
         }
@@ -835,7 +815,6 @@ static void schedule_reset_if_needed() {
 
             // Schedule wakeup event and keep the WakeupId in case it needs to be queried
             wakeup_reset_id = wakeup_schedule(future_time, WAKEUP_RESET_REASON, true);
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "Future time: %d", (int)(future_time));
             attempts++;
         }
 
