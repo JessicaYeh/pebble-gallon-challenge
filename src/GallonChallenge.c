@@ -885,7 +885,7 @@ static void window_load(Window *window) {
     layer_add_child(window_layer, bitmap_layer_get_layer(gallon_filled_layer));
     
     white_layer = text_layer_create(GRect(0, 29 + y_shift, 114, 92));
-    text_layer_set_background_color(white_layer, GColorWhite);
+    text_layer_set_background_color(white_layer, PBL_IF_COLOR_ELSE(GColorWhite, GColorWhite));
     layer_add_child(window_layer, text_layer_get_layer(white_layer));
     
     gallon_layer = bitmap_layer_create(GRect(x_shift, 29 + y_shift, 114, 92));
@@ -896,13 +896,13 @@ static void window_load(Window *window) {
     streak_text_layer = text_layer_create(GRect(0, y_shift, width, 60));
     text_layer_set_font(streak_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24));
     text_layer_set_text_alignment(streak_text_layer, GTextAlignmentCenter);
-    text_layer_set_background_color(streak_text_layer, GColorClear);
+    text_layer_set_background_color(streak_text_layer, PBL_IF_COLOR_ELSE(GColorClear, GColorClear));
     layer_add_child(window_layer, text_layer_get_layer(streak_text_layer));
     
     text_layer = text_layer_create(GRect(0, 116 + y_shift, width, 60));
     text_layer_set_font(text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
     text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
-    text_layer_set_background_color(text_layer, GColorClear);
+    text_layer_set_background_color(text_layer, PBL_IF_COLOR_ELSE(GColorClear, GColorClear));
     layer_add_child(window_layer, text_layer_get_layer(text_layer));
 
     star_layer = bitmap_layer_create(GRect(width/2-13, 72 + y_shift, 26, 24));
@@ -912,7 +912,7 @@ static void window_load(Window *window) {
     notify_text_layer = text_layer_create(GRect(0, 62 + y_shift, width, 38));
     text_layer_set_font(notify_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
     text_layer_set_text_alignment(notify_text_layer, GTextAlignmentCenter);
-    text_layer_set_background_color(notify_text_layer, GColorWhite);
+    text_layer_set_background_color(notify_text_layer, PBL_IF_COLOR_ELSE(GColorWhite, GColorWhite));
     layer_add_child(window_layer, text_layer_get_layer(notify_text_layer));
     layer_set_hidden(text_layer_get_layer(notify_text_layer), true);
     
@@ -943,13 +943,13 @@ static void CDU_window_load(Window *window) {
     
     CDU_header_text_layer = text_layer_create(GRect(4, 0, width, 60));
     text_layer_set_font(CDU_header_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-    text_layer_set_background_color(CDU_header_text_layer, GColorClear);
+    text_layer_set_background_color(CDU_header_text_layer, PBL_IF_COLOR_ELSE(GColorClear, GColorClear));
     text_layer_set_text(CDU_header_text_layer, "Set Custom Drinking Unit");
     layer_add_child(window_layer, text_layer_get_layer(CDU_header_text_layer));
     
     CDU_text_layer = text_layer_create(GRect(4, 60, width, 60));
     text_layer_set_font(CDU_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
-    text_layer_set_background_color(CDU_text_layer, GColorClear);
+    text_layer_set_background_color(CDU_text_layer, PBL_IF_COLOR_ELSE(GColorClear, GColorClear));
     layer_add_child(window_layer, text_layer_get_layer(CDU_text_layer));
 
     temp_cdu_oz = cdu_oz;
