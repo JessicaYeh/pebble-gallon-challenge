@@ -188,24 +188,29 @@ static bool are_dates_equal(time_t date1, time_t date2) {
 static bool should_vibrate() {
     // Get the current hour
     time_t current_time = now();
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "Now: %d", (int)current_time);
     #ifdef PBL_SDK_3
         struct tm *time_struct = gmtime(&current_time);
     #else
         struct tm *time_struct = localtime(&current_time);
     #endif
     uint16_t hour = time_struct->tm_hour;
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "Original Hour: %d", hour);
 
     // Make adjustments to be able to calculate the silent hours
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "UTC Offset: %d", (int)get_UTC_offset(NULL));
     uint16_t start_silent = (end_of_day + 24 - 2) % 24;
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "Start silent: %d", start_silent);
     uint16_t end_silent = (start_of_day + 24) % 24;
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "End silent: %d", end_silent);
     if (start_silent > end_silent) {
         end_silent += 24;
     }
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "End silent: %d", end_silent);
     if (hour < start_silent) {
         hour += 24;
     }
-    start_silent += get_UTC_offset(NULL);
-    end_silent += get_UTC_offset(NULL);
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "Modified Hour: %d", hour);
 
     // Whether the hour is inside the silent hours
     if (hour >= start_silent && hour <= end_silent) {
