@@ -4,4 +4,4 @@
 build
 pebble-screenshot_*.png
 pebble_screenshot_*.png
-action_icon_settings*.png
+resources/images/other
