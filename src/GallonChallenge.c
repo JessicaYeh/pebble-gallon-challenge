@@ -23,7 +23,7 @@ static AppTimer *quit_timer, *reset_reminder_timer, *remove_notify_timer;
 
 static bool launched = false;
 
-static uint16_t width, x_shift, y_shift;
+static uint16_t width, x_shift, y_shift, chalk_shift;
 
 
 static uint16_t half_gallon_height(float v) {
@@ -871,12 +871,6 @@ static void save_persistent_storage() {
 }
 
 static void window_load(Window *window) {
-    action_bar = action_bar_layer_create();
-    action_bar_layer_add_to_window(action_bar, window);
-    action_bar_layer_set_click_config_provider(action_bar, click_config_provider);
-    action_bar_layer_set_icon(action_bar, BUTTON_ID_UP, action_icon_plus);
-    action_bar_layer_set_icon(action_bar, BUTTON_ID_SELECT, action_icon_settings);
-    action_bar_layer_set_icon(action_bar, BUTTON_ID_DOWN, action_icon_minus);
 
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
@@ -885,41 +879,53 @@ static void window_load(Window *window) {
     x_shift = (width - 114) / 2;
     uint16_t height = bounds.size.h;
     y_shift = (height - 152) / 2;
+    #if defined(PBL_RECT)
+        chalk_shift = 0;
+    #elif defined(PBL_ROUND)
+        chalk_shift = 14;
+    #endif
 
-    gallon_filled_layer = bitmap_layer_create(GRect(x_shift, 29 + y_shift, 114, 92));
+    gallon_filled_layer = bitmap_layer_create(GRect(x_shift + chalk_shift, 29 + y_shift, 114, 92));
     layer_add_child(window_layer, bitmap_layer_get_layer(gallon_filled_layer));
     
     white_layer = text_layer_create(GRect(0, 29 + y_shift, 114, 92));
     text_layer_set_background_color(white_layer, PBL_IF_COLOR_ELSE(GColorWhite, GColorWhite));
     layer_add_child(window_layer, text_layer_get_layer(white_layer));
     
-    gallon_layer = bitmap_layer_create(GRect(x_shift, 29 + y_shift, 114, 92));
+    gallon_layer = bitmap_layer_create(GRect(x_shift + chalk_shift, 29 + y_shift, 114, 92));
     bitmap_layer_set_background_color(gallon_layer, GColorClear);
     bitmap_layer_set_compositing_mode(gallon_layer, GCompOpClear);
     layer_add_child(window_layer, bitmap_layer_get_layer(gallon_layer));
     
-    streak_text_layer = text_layer_create(GRect(0, y_shift, width, 60));
+    streak_text_layer = text_layer_create(GRect(chalk_shift, y_shift, width, 60));
     text_layer_set_font(streak_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24));
     text_layer_set_text_alignment(streak_text_layer, GTextAlignmentCenter);
     text_layer_set_background_color(streak_text_layer, PBL_IF_COLOR_ELSE(GColorClear, GColorClear));
     layer_add_child(window_layer, text_layer_get_layer(streak_text_layer));
     
-    text_layer = text_layer_create(GRect(0, 116 + y_shift, width, 60));
+    text_layer = text_layer_create(GRect(chalk_shift, 116 + y_shift, width, 60));
     text_layer_set_font(text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
     text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
     text_layer_set_background_color(text_layer, PBL_IF_COLOR_ELSE(GColorClear, GColorClear));
     layer_add_child(window_layer, text_layer_get_layer(text_layer));
 
-    star_layer = bitmap_layer_create(GRect(width/2-13, 72 + y_shift, 26, 24));
+    star_layer = bitmap_layer_create(GRect(width/2-13 + chalk_shift, 72 + y_shift, 26, 24));
     bitmap_layer_set_bitmap(star_layer, star);
     layer_add_child(window_layer, bitmap_layer_get_layer(star_layer));
 
-    notify_text_layer = text_layer_create(GRect(0, 62 + y_shift, width, 38));
+    notify_text_layer = text_layer_create(GRect(chalk_shift, 62 + y_shift, width, 38));
     text_layer_set_font(notify_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
     text_layer_set_text_alignment(notify_text_layer, GTextAlignmentCenter);
     text_layer_set_background_color(notify_text_layer, PBL_IF_COLOR_ELSE(GColorWhite, GColorWhite));
     layer_add_child(window_layer, text_layer_get_layer(notify_text_layer));
     layer_set_hidden(text_layer_get_layer(notify_text_layer), true);
+
+    action_bar = action_bar_layer_create();
+    action_bar_layer_add_to_window(action_bar, window);
+    action_bar_layer_set_click_config_provider(action_bar, click_config_provider);
+    action_bar_layer_set_icon(action_bar, BUTTON_ID_UP, action_icon_plus);
+    action_bar_layer_set_icon(action_bar, BUTTON_ID_SELECT, action_icon_settings);
+    action_bar_layer_set_icon(action_bar, BUTTON_ID_DOWN, action_icon_minus);
     
     set_image_for_goal();
     reset_current_date_and_volume_if_needed();
@@ -946,13 +952,13 @@ static void CDU_window_load(Window *window) {
 
     Layer *window_layer = window_get_root_layer(window);
     
-    CDU_header_text_layer = text_layer_create(GRect(4, 0, width, 60));
+    CDU_header_text_layer = text_layer_create(GRect(4 + chalk_shift, 16 + y_shift, width, 60));
     text_layer_set_font(CDU_header_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
     text_layer_set_background_color(CDU_header_text_layer, PBL_IF_COLOR_ELSE(GColorClear, GColorClear));
     text_layer_set_text(CDU_header_text_layer, "Set Custom Drinking Unit");
     layer_add_child(window_layer, text_layer_get_layer(CDU_header_text_layer));
     
-    CDU_text_layer = text_layer_create(GRect(4, 60, width, 60));
+    CDU_text_layer = text_layer_create(GRect(4 + chalk_shift, 76 + y_shift, width, 60));
     text_layer_set_font(CDU_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
     text_layer_set_background_color(CDU_text_layer, PBL_IF_COLOR_ELSE(GColorClear, GColorClear));
     layer_add_child(window_layer, text_layer_get_layer(CDU_text_layer));
