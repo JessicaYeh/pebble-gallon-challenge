@@ -308,10 +308,10 @@ static uint16_t calc_current_volume() {
     switch (unit_system) {
         case CUSTOMARY:
             switch (unit) {
-                case CUP:   return current_oz / OZ_IN_CUP;
-                case PINT:  return current_oz / OZ_IN_PINT;
-                case QUART: return current_oz / OZ_IN_QUART;
-                default:    return current_oz;
+                case CUP:    return current_oz / OZ_IN_CUP;
+                case PINT:   return current_oz / OZ_IN_PINT;
+                case QUART:  return current_oz / OZ_IN_QUART;
+                default:     return current_oz;
             }
         case METRIC:
             return current_ml;
@@ -327,11 +327,19 @@ static uint16_t get_unit_in_gal(bool forAutoReminder) {
                 case CUP:    return CUP_IN_GAL;
                 case PINT:   return PINT_IN_GAL;
                 case QUART:  return QUART_IN_GAL;
-                case CUSTOM: if (forAutoReminder) return OZ_IN_GAL / cdu_oz;
+                case CUSTOM: 
+                    if (forAutoReminder) return OZ_IN_GAL / cdu_oz;
+                    // else return OZ_IN_GAL;
                 default:     return OZ_IN_GAL;
             }
         case METRIC:
-            return ML_IN_GAL;
+            switch (unit) {
+                case CUSTOM:
+                    if (forAutoReminder) return ML_IN_GAL / cdu_ml;
+                    // else return OZ_IN_GAL;
+                default:
+                    return ML_IN_GAL;
+            }
         default:
             return 0;
     }
@@ -752,12 +760,24 @@ static void schedule_reminder_if_needed() {
         if (inactivity_reminder_hours == 1) {
             // Auto reminders based on how many hours are left in the day and 
             // how much you still need to drink
-            hours = hours_left_in_day() / (get_unit_in_gal(true) * get_goal_scale() - calc_current_volume());
+            // APP_LOG(APP_LOG_LEVEL_DEBUG, "Unit in gal: %u", get_unit_in_gal(true));
+            // APP_LOG(APP_LOG_LEVEL_DEBUG, "Unit in gal: %u", get_unit_in_gal(true));
+            uint16_t current_volume_scalar = 1;
+            if (unit == CUSTOM) {
+                current_volume_scalar = (unit_system == CUSTOMARY) ? cdu_oz : cdu_ml;
+            }
+            hours = hours_left_in_day() / 
+                    (get_unit_in_gal(true) * get_goal_scale() - 
+                    calc_current_volume() / current_volume_scalar);
+            // APP_LOG(APP_LOG_LEVEL_DEBUG, "Reminder seconds: %d", (int)(hours*SEC_IN_HOUR));
             // If using the metric unit system, scale the amount by drinking unit
-            if (unit_system == METRIC) {
+            if (unit_system == METRIC && unit != CUSTOM) {
                 hours *= get_ml_in(unit);
             }
+
+            // APP_LOG(APP_LOG_LEVEL_DEBUG, "Reminder seconds: %d", (int)(hours*SEC_IN_HOUR));
         } else {
+            // Hour-based reminders
             hours = inactivity_reminder_hours - 1;
         }
         if (hours < 0.5) hours = 0.5;
@@ -776,6 +796,7 @@ static void schedule_reminder_if_needed() {
 
             // Schedule wakeup event and keep the WakeupId in case it needs to be queried
             wakeup_reminder_id = wakeup_schedule(future_time, WAKEUP_REMINDER_REASON, false);
+            // APP_LOG(APP_LOG_LEVEL_DEBUG, "Reminder time: %d", (int)future_time);
             attempts++;
         }
 
