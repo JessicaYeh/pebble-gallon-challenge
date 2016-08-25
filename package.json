@@ -1,5 +1,5 @@
 {
-  "version": "3.3.0",
+  "version": "3.4.0",
   "author": "Jessica Yeh",
   "private": true,
   "dependencies": {},
@@ -78,7 +78,8 @@
     "targetPlatforms": [
       "aplite",
       "basalt",
-      "chalk"
+      "chalk",
+      "diorite"
     ],
     "capabilities": []
   },
