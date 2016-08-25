@@ -2,11 +2,11 @@
 #include "PDUtils.h"
 #include "GallonChallenge.h"
 
-static Window *window, *custom_drink_unit_window;
+static Window *main_window, *custom_drink_unit_window;
 
 static GBitmap *action_icon_plus, *action_icon_settings, *action_icon_check, *action_icon_minus, *gallon_filled_image, *gallon_image, *star;
 
-static ActionBarLayer *action_bar, *CDU_action_bar;
+static ActionBarLayer *action_bar;
 static TextLayer *streak_text_layer, *text_layer, *white_layer, *notify_text_layer, *CDU_header_text_layer, *CDU_text_layer;
 static BitmapLayer *gallon_filled_layer, *gallon_layer, *star_layer;
 
@@ -14,8 +14,9 @@ static UnitSystem unit_system;
 static Unit goal, unit;
 
 static time_t current_date, last_streak_date, drinking_since;
-static uint16_t current_oz, current_ml, streak_count, start_of_day, end_of_day, inactivity_reminder_hours, longest_streak, temp_cdu_oz, temp_cdu_ml, cdu_oz, cdu_ml;
-static uint32_t total_consumed;
+static uint8_t current_oz, start_of_day, end_of_day, inactivity_reminder_hours, temp_cdu_oz, cdu_oz;
+static uint16_t current_ml, streak_count, longest_streak, temp_cdu_ml, cdu_ml;
+static uint16_t total_consumed;
 
 static WakeupId wakeup_reminder_id, wakeup_reset_id;
 
@@ -23,10 +24,10 @@ static AppTimer *quit_timer, *reset_reminder_timer, *remove_notify_timer;
 
 static bool launched = false;
 
-static uint16_t width, x_shift, y_shift, chalk_shift;
+static uint8_t width, x_shift, y_shift, chalk_shift;
 
 
-static uint16_t half_gallon_height(float v) {
+static uint8_t half_gallon_height(float v) {
     if (unit_system == CUSTOMARY) {
         return -2.648947948*10e-7*v*v*v*v + 1.57399393*10e-5*v*v*v - 3.197706522*10e-5*v*v - 1.227965142*v + 84.21612388;
     } else {
@@ -34,7 +35,7 @@ static uint16_t half_gallon_height(float v) {
     }
 }
 
-static uint16_t gallon_height(float v) {
+static uint8_t gallon_height(float v) {
     if (unit_system == CUSTOMARY) {
         return -1.308363868*10e-8*v*v*v*v + 3.373611245*10e-7*v*v*v + 1.708355542*10e-4*v*v - 6.136166056*10e-2*v + 81.11469866;
     } else {
@@ -42,7 +43,7 @@ static uint16_t gallon_height(float v) {
     }
 }
 
-static uint16_t container_height(float vol) {
+static uint8_t container_height(float vol) {
     if (vol == 0) {
         return 93;
     }
@@ -113,7 +114,7 @@ static const char* custom_unit_to_string() {
     }
 }
 
-static const char* hour_to_string(uint16_t hour) {
+static const char* hour_to_string(uint8_t hour) {
     switch (hour) {
         case 0:  return "12:00 AM";
         case 1:  return "1:00 AM";
@@ -143,7 +144,7 @@ static const char* hour_to_string(uint16_t hour) {
     }
 }
 
-static const char* reminder_to_string(uint16_t hour) {
+static const char* reminder_to_string(uint8_t hour) {
     switch (hour) {
         case 0:  return "Off";
         case 1:  return "Auto";
@@ -194,14 +195,14 @@ static bool should_vibrate() {
     #else
         struct tm *time_struct = localtime(&current_time);
     #endif
-    uint16_t hour = time_struct->tm_hour;
+    uint8_t hour = time_struct->tm_hour;
     // APP_LOG(APP_LOG_LEVEL_DEBUG, "Original Hour: %d", hour);
 
     // Make adjustments to be able to calculate the silent hours
     // APP_LOG(APP_LOG_LEVEL_DEBUG, "UTC Offset: %d", (int)get_UTC_offset(NULL));
-    uint16_t start_silent = (end_of_day + 24 - 2) % 24;
+    uint8_t start_silent = (end_of_day + 24 - 2) % 24;
     // APP_LOG(APP_LOG_LEVEL_DEBUG, "Start silent: %d", start_silent);
-    uint16_t end_silent = (start_of_day + 24) % 24;
+    uint8_t end_silent = (start_of_day + 24) % 24;
     // APP_LOG(APP_LOG_LEVEL_DEBUG, "End silent: %d", end_silent);
     if (start_silent > end_silent) {
         end_silent += 24;
@@ -407,7 +408,7 @@ static void update_volume_display() {
         (unit_system == CUSTOMARY) ? unit_string : "mL");
     text_layer_set_text(text_layer, body_text);
     
-    uint16_t height = container_height((unit_system == CUSTOMARY) ? current_oz : current_ml);
+    uint8_t height = container_height((unit_system == CUSTOMARY) ? current_oz : current_ml);
     layer_set_frame(text_layer_get_layer(white_layer), GRect(0, 34 + y_shift, width, height));
 
     // Only show the star if the goal is met
@@ -602,7 +603,7 @@ static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
 }
 
 static void click_config_provider(void *context) {
-    const uint16_t repeat_interval_ms = 100;
+    const uint8_t repeat_interval_ms = 100;
     window_single_repeating_click_subscribe(BUTTON_ID_UP, repeat_interval_ms, up_click_handler);
     window_single_repeating_click_subscribe(BUTTON_ID_DOWN, repeat_interval_ms, down_click_handler);
     window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
@@ -658,7 +659,7 @@ static void CDU_update_display() {
 }
 
 static void CDU_click_config_provider(void *context) {
-    const uint16_t repeat_interval_ms = 50;
+    const uint8_t repeat_interval_ms = 50;
     window_single_repeating_click_subscribe(BUTTON_ID_UP, repeat_interval_ms, CDU_up_click_handler);
     window_single_repeating_click_subscribe(BUTTON_ID_DOWN, repeat_interval_ms, CDU_down_click_handler);
     window_single_click_subscribe(BUTTON_ID_SELECT, CDU_select_click_handler);
@@ -787,7 +788,7 @@ static void schedule_reminder_if_needed() {
 
         // Repeatedly try to schedule the wakeup in case of conflicting wakeup times
         wakeup_reminder_id = 0;
-        uint16_t attempts = 0;
+        uint8_t attempts = 0;
         while ((!wakeup_reminder_id || wakeup_reminder_id == E_RANGE || wakeup_reminder_id == E_INTERNAL) && attempts < 100) {
             // Add a minute to wakeup timer if the error was for time range
             if (wakeup_reminder_id == E_RANGE) {
@@ -832,7 +833,7 @@ static void schedule_reset_if_needed() {
 
         // Repeatedly try to schedule the wakeup in case of conflicting wakeup times
         wakeup_reset_id = 0;
-        uint16_t attempts = 0;
+        uint8_t attempts = 0;
         while ((!wakeup_reset_id || wakeup_reset_id == E_RANGE || wakeup_reset_id == E_INTERNAL) && attempts < 100) {
             // Add a minute to wakeup timer if the error was for time range
             if (wakeup_reset_id == E_RANGE) {
@@ -892,13 +893,12 @@ static void save_persistent_storage() {
 }
 
 static void window_load(Window *window) {
-
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
     
     width = bounds.size.w - ACTION_BAR_WIDTH;
-    x_shift = (width - 114) / 2;
-    uint16_t height = bounds.size.h;
+    x_shift = (width - 64) / 2;
+    uint8_t height = bounds.size.h;
     y_shift = (height - 152) / 2;
     #if defined(PBL_RECT)
         chalk_shift = 0;
@@ -906,14 +906,14 @@ static void window_load(Window *window) {
         chalk_shift = 14;
     #endif
 
-    gallon_filled_layer = bitmap_layer_create(GRect(x_shift + chalk_shift, 29 + y_shift, 114, 92));
+    gallon_filled_layer = bitmap_layer_create(GRect(x_shift + chalk_shift, 29 + y_shift, 64, 92));
     layer_add_child(window_layer, bitmap_layer_get_layer(gallon_filled_layer));
     
-    white_layer = text_layer_create(GRect(0, 29 + y_shift, 114, 92));
+    white_layer = text_layer_create(GRect(x_shift, 29 + y_shift, 64, 92));
     text_layer_set_background_color(white_layer, PBL_IF_COLOR_ELSE(GColorWhite, GColorWhite));
     layer_add_child(window_layer, text_layer_get_layer(white_layer));
     
-    gallon_layer = bitmap_layer_create(GRect(x_shift + chalk_shift, 29 + y_shift, 114, 92));
+    gallon_layer = bitmap_layer_create(GRect(x_shift + chalk_shift, 29 + y_shift, 64, 92));
     bitmap_layer_set_background_color(gallon_layer, GColorClear);
     bitmap_layer_set_compositing_mode(gallon_layer, GCompOpClear);
     layer_add_child(window_layer, bitmap_layer_get_layer(gallon_layer));
@@ -964,12 +964,9 @@ static void window_unload(Window *window) {
 }
 
 static void CDU_window_load(Window *window) {
-    CDU_action_bar = action_bar_layer_create();
-    action_bar_layer_add_to_window(CDU_action_bar, custom_drink_unit_window);
-    action_bar_layer_set_click_config_provider(CDU_action_bar, CDU_click_config_provider);
-    action_bar_layer_set_icon(CDU_action_bar, BUTTON_ID_UP, action_icon_plus);
-    action_bar_layer_set_icon(CDU_action_bar, BUTTON_ID_SELECT, action_icon_check);
-    action_bar_layer_set_icon(CDU_action_bar, BUTTON_ID_DOWN, action_icon_minus);
+    action_bar_layer_add_to_window(action_bar, custom_drink_unit_window);
+    action_bar_layer_set_click_config_provider(action_bar, CDU_click_config_provider);
+    action_bar_layer_set_icon(action_bar, BUTTON_ID_SELECT, action_icon_check);
 
     Layer *window_layer = window_get_root_layer(window);
     
@@ -990,9 +987,12 @@ static void CDU_window_load(Window *window) {
 }
 
 static void CDU_window_unload(Window *window) {
-    action_bar_layer_destroy(CDU_action_bar);
+    action_bar_layer_add_to_window(action_bar, main_window);
+    action_bar_layer_set_click_config_provider(action_bar, click_config_provider);
+    action_bar_layer_set_icon(action_bar, BUTTON_ID_SELECT, action_icon_settings);
     text_layer_destroy(CDU_header_text_layer);
     text_layer_destroy(CDU_text_layer);
+    window_destroy(custom_drink_unit_window);
 }
 
 static void init(void) {
@@ -1004,71 +1004,15 @@ static void init(void) {
     action_icon_check = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ACTION_ICON_CHECK);
     star = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STAR);
 
-    window = window_create();
-    window_set_click_config_provider(window, click_config_provider);
-    window_set_window_handlers(window, (WindowHandlers) {
+    main_window = window_create();
+    window_set_click_config_provider(main_window, click_config_provider);
+    window_set_window_handlers(main_window, (WindowHandlers) {
         .load = window_load,
         .unload = window_unload,
     });
-
-    custom_drink_unit_window = window_create();
-    window_set_click_config_provider(custom_drink_unit_window, CDU_click_config_provider);
-    window_set_window_handlers(custom_drink_unit_window, (WindowHandlers) {
-        .load = CDU_window_load,
-        .unload = CDU_window_unload,
-    });
     
-    settings_menu_window = window_create();
-    window_set_window_handlers(settings_menu_window, (WindowHandlers) {
-        .load = settings_menu_window_load,
-        .unload = settings_menu_window_unload,
-    });
+    window_stack_push(main_window, true);
     
-    profile_menu_window = window_create();
-    window_set_window_handlers(profile_menu_window, (WindowHandlers) {
-        .load = profile_menu_window_load,
-        .unload = profile_menu_window_unload,
-    });
-    
-    unit_system_menu_window = window_create();
-    window_set_window_handlers(unit_system_menu_window, (WindowHandlers) {
-        .load = unit_system_menu_window_load,
-        .unload = unit_system_menu_window_unload,
-    });
-
-    goal_menu_window = window_create();
-    window_set_window_handlers(goal_menu_window, (WindowHandlers) {
-        .load = goal_menu_window_load,
-        .unload = goal_menu_window_unload,
-    });
-    
-    unit_menu_window = window_create();
-    window_set_window_handlers(unit_menu_window, (WindowHandlers) {
-        .load = unit_menu_window_load,
-        .unload = unit_menu_window_unload,
-    });
-    
-    sod_menu_window = window_create();
-    window_set_window_handlers(sod_menu_window, (WindowHandlers) {
-        .load = sod_menu_window_load,
-        .unload = sod_menu_window_unload,
-    });
-
-    eod_menu_window = window_create();
-    window_set_window_handlers(eod_menu_window, (WindowHandlers) {
-        .load = eod_menu_window_load,
-        .unload = eod_menu_window_unload,
-    });
-    
-    reminder_menu_window = window_create();
-    window_set_window_handlers(reminder_menu_window, (WindowHandlers) {
-        .load = reminder_menu_window_load,
-        .unload = reminder_menu_window_unload,
-    });
-    
-    window_stack_push(window, true);
-    
-    // tick_timer_service_subscribe(HOUR_UNIT, handle_hour_tick);
     wakeup_service_subscribe(wakeup_handler);
     schedule_reminder_if_needed();
     schedule_reset_if_needed();
@@ -1085,15 +1029,7 @@ static void deinit(void) {
     gbitmap_destroy(gallon_image);
     gbitmap_destroy(star);
     
-    window_destroy(window);
-    window_destroy(settings_menu_window);
-    window_destroy(profile_menu_window);
-    window_destroy(unit_system_menu_window);
-    window_destroy(goal_menu_window);
-    window_destroy(unit_menu_window);
-    window_destroy(sod_menu_window);
-    window_destroy(eod_menu_window);
-    window_destroy(reminder_menu_window);
+    window_destroy(main_window);
 }
 
 int main(void) {
@@ -1209,6 +1145,11 @@ static void settings_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell
 }
 
 static void settings_menu_show() {
+    settings_menu_window = window_create();
+    window_set_window_handlers(settings_menu_window, (WindowHandlers) {
+        .load = settings_menu_window_load,
+        .unload = settings_menu_window_unload,
+    });
     window_stack_push(settings_menu_window, true);
 }
 
@@ -1238,6 +1179,7 @@ static void settings_menu_window_load(Window *window) {
 
 static void settings_menu_window_unload(Window *window) {
     menu_layer_destroy(settings_menu_layer);
+    window_destroy(settings_menu_window);
 }
 // End settings menu stuff
 
@@ -1340,6 +1282,11 @@ static void profile_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_
 }
 
 static void profile_menu_show() {
+    profile_menu_window = window_create();
+    window_set_window_handlers(profile_menu_window, (WindowHandlers) {
+        .load = profile_menu_window_load,
+        .unload = profile_menu_window_unload,
+    });
     window_stack_push(profile_menu_window, true);
 }
 
@@ -1369,6 +1316,7 @@ static void profile_menu_window_load(Window *window) {
 
 static void profile_menu_window_unload(Window *window) {
     menu_layer_destroy(profile_menu_layer);
+    window_destroy(profile_menu_window);
 }
 // End settings menu stuff
 
@@ -1404,6 +1352,11 @@ static void unit_system_menu_select_callback(MenuLayer *menu_layer, MenuIndex *c
 }
 
 static void unit_system_menu_show() {
+    unit_system_menu_window = window_create();
+    window_set_window_handlers(unit_system_menu_window, (WindowHandlers) {
+        .load = unit_system_menu_window_load,
+        .unload = unit_system_menu_window_unload,
+    });
     window_stack_push(unit_system_menu_window, true);
     
     // Sets the selected unit system in the menu
@@ -1436,6 +1389,7 @@ static void unit_system_menu_window_load(Window *window) {
 
 static void unit_system_menu_window_unload(Window *window) {
     menu_layer_destroy(unit_system_menu_layer);
+    window_destroy(unit_system_menu_window);
 }
 // End unit system menu stuff
 
@@ -1480,6 +1434,11 @@ static void goal_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_ind
 }
 
 static void goal_menu_show() {
+    goal_menu_window = window_create();
+    window_set_window_handlers(goal_menu_window, (WindowHandlers) {
+        .load = goal_menu_window_load,
+        .unload = goal_menu_window_unload,
+    });
     window_stack_push(goal_menu_window, true);
     
     // Sets the selected goal in the menu
@@ -1512,6 +1471,7 @@ static void goal_menu_window_load(Window *window) {
 
 static void goal_menu_window_unload(Window *window) {
     menu_layer_destroy(goal_menu_layer);
+    window_destroy(goal_menu_window);
 }
 // End goal menu stuff
 
@@ -1551,15 +1511,26 @@ static void unit_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_ind
         reset_reminder();
         window_stack_pop(true);
     } else {
+        custom_drink_unit_window = window_create();
+        window_set_click_config_provider(custom_drink_unit_window, CDU_click_config_provider);
+        window_set_window_handlers(custom_drink_unit_window, (WindowHandlers) {
+            .load = CDU_window_load,
+            .unload = CDU_window_unload,
+        });
         window_stack_push(custom_drink_unit_window, true);
     }
 }
 
 static void unit_menu_show() {
+    unit_menu_window = window_create();
+    window_set_window_handlers(unit_menu_window, (WindowHandlers) {
+        .load = unit_menu_window_load,
+        .unload = unit_menu_window_unload,
+    });
     window_stack_push(unit_menu_window, true);
     
     // Sets the selected unit in the menu
-    uint16_t row = (unit == CUSTOM) ? 4 : unit;
+    uint8_t row = (unit == CUSTOM) ? 4 : unit;
     menu_layer_set_selected_index(unit_menu_layer, (MenuIndex) { .row = row, .section = 0 }, MenuRowAlignCenter, false);
 }
 
@@ -1589,6 +1560,7 @@ static void unit_menu_window_load(Window *window) {
 
 static void unit_menu_window_unload(Window *window) {
     menu_layer_destroy(unit_menu_layer);
+    window_destroy(unit_menu_window);
 }
 // End unit menu stuff
 
@@ -1624,6 +1596,11 @@ static void sod_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_inde
 }
 
 static void sod_menu_show() {
+    sod_menu_window = window_create();
+    window_set_window_handlers(sod_menu_window, (WindowHandlers) {
+        .load = sod_menu_window_load,
+        .unload = sod_menu_window_unload,
+    });
     window_stack_push(sod_menu_window, true);
     
     // Sets the selected unit in the menu
@@ -1656,6 +1633,7 @@ static void sod_menu_window_load(Window *window) {
 
 static void sod_menu_window_unload(Window *window) {
     menu_layer_destroy(sod_menu_layer);
+    window_destroy(sod_menu_window);
 }
 // End end of day menu stuff
 
@@ -1685,7 +1663,7 @@ static void eod_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, M
 }
 
 static void eod_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
-    uint16_t old_end_of_day = end_of_day;
+    uint8_t old_end_of_day = end_of_day;
     end_of_day = cell_index->row;
     uint32_t time_diff = (end_of_day - old_end_of_day) * SEC_IN_HOUR;
     current_date -= time_diff;
@@ -1696,6 +1674,11 @@ static void eod_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_inde
 }
 
 static void eod_menu_show() {
+    eod_menu_window = window_create();
+    window_set_window_handlers(eod_menu_window, (WindowHandlers) {
+        .load = eod_menu_window_load,
+        .unload = eod_menu_window_unload,
+    });
     window_stack_push(eod_menu_window, true);
     
     // Sets the selected unit in the menu
@@ -1728,6 +1711,7 @@ static void eod_menu_window_load(Window *window) {
 
 static void eod_menu_window_unload(Window *window) {
     menu_layer_destroy(eod_menu_layer);
+    window_destroy(eod_menu_window);
 }
 // End end of day menu stuff
 
@@ -1763,6 +1747,11 @@ static void reminder_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell
 }
 
 static void reminder_menu_show() {
+    reminder_menu_window = window_create();
+    window_set_window_handlers(reminder_menu_window, (WindowHandlers) {
+        .load = reminder_menu_window_load,
+        .unload = reminder_menu_window_unload,
+    });
     window_stack_push(reminder_menu_window, true);
     
     // Sets the selected hour in the menu
@@ -1795,5 +1784,6 @@ static void reminder_menu_window_load(Window *window) {
 
 static void reminder_menu_window_unload(Window *window) {
     menu_layer_destroy(reminder_menu_layer);
+    window_destroy(reminder_menu_window);
 }
 // End reminder menu stuff
