@@ -1,0 +1,86 @@
+{
+  "version": "3.3.0",
+  "author": "Jessica Yeh",
+  "private": true,
+  "dependencies": {},
+  "keywords": [
+    "pebble-app"
+  ],
+  "pebble": {
+    "sdkVersion": "3",
+    "resources": {
+      "media": [
+        {
+          "menuIcon": true,
+          "type": "bitmap",
+          "name": "IMAGE_MENU_ICON",
+          "file": "images/app_icon.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_ACTION_ICON_PLUS",
+          "file": "images/action_icon_plus.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_ACTION_ICON_MINUS",
+          "file": "images/action_icon_minus.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_ACTION_ICON_SETTINGS",
+          "file": "images/action_icon_settings.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_ACTION_ICON_CHECK",
+          "file": "images/action_icon_check.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_GALLON_FILLED",
+          "file": "images/gallon_filled.png"
+        },
+        {
+          "type": "png-trans",
+          "name": "IMAGE_GALLON",
+          "file": "images/gallon.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_HALF_GALLON_FILLED",
+          "file": "images/half_gallon_filled.png"
+        },
+        {
+          "type": "png-trans",
+          "name": "IMAGE_HALF_GALLON",
+          "file": "images/half_gallon.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_STAR",
+          "file": "images/star.png"
+        }
+      ]
+    },
+    "projectType": "native",
+    "uuid": "8c4c050d-a998-4cc1-aae5-91a387e954c7",
+    "messageKeys": {
+      "dummy": 0
+    },
+    "enableMultiJS": false,
+    "displayName": "Gallon Challenge",
+    "watchapp": {
+      "onlyShownOnCommunication": false,
+      "hiddenApp": false,
+      "watchface": false
+    },
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "chalk"
+    ],
+    "capabilities": []
+  },
+  "name": "Gallon Challenge"
+}

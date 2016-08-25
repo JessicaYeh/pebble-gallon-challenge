@@ -5,3 +5,5 @@ build
 pebble-screenshot_*.png
 pebble_screenshot_*.png
 resources/images/other
+
+node_modules/
